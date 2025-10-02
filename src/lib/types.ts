@@ -16,7 +16,7 @@ export interface ChamaGroup {
   name: string;
   description: string;
   createdBy: string;
-  members: UserProfile[];
+  members: UserProfile[]; // Storing full member profiles for simplicity
   kittyBalance: number;
   merryGoRoundIndex: number;
 }
@@ -27,7 +27,7 @@ export interface Contribution {
   memberId: string;
   memberName: string;
   amount: number;
-  date: string; // ISO string
+  date: Timestamp | string; // Can be a server timestamp or an ISO string
   ref: string;
 }
 

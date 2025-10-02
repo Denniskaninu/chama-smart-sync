@@ -23,6 +23,57 @@
         "timestamp": { "type": "string", "format": "date-time", "description": "The time the message was sent." }
       },
       "required": ["groupId", "senderId", "text", "timestamp"]
+    },
+    "Group": {
+      "title": "Group",
+      "description": "Represents a savings group (chama).",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "members": { "type": "array", "items": { "$ref": "#/entities/UserProfile" } },
+        "kittyBalance": { "type": "number" },
+        "merryGoRoundIndex": { "type": "number" }
+      }
+    },
+    "Contribution": {
+        "title": "Contribution",
+        "description": "A single contribution made by a member to a group.",
+        "type": "object",
+        "properties": {
+            "groupId": { "type": "string" },
+            "memberId": { "type": "string" },
+            "memberName": { "type": "string" },
+            "amount": { "type": "number" },
+            "date": { "type": "string", "format": "date-time" },
+            "ref": { "type": "string" }
+        }
+    },
+    "Loan": {
+        "title": "Loan",
+        "description": "A loan request from a member.",
+        "type": "object",
+        "properties": {
+            "groupId": { "type": "string" },
+            "memberId": { "type": "string" },
+            "memberName": { "type": "string" },
+            "amount": { "type": "number" },
+            "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+            "votes": { "type": "array" },
+            "repayments": { "type": "array" }
+        }
+    },
+    "Receipt": {
+        "title": "Receipt",
+        "description": "A receipt uploaded for a transaction.",
+        "type": "object",
+        "properties": {
+            "groupId": { "type": "string" },
+            "url": { "type": "string", "format": "uri" },
+            "uploadedBy": { "type": "string" },
+            "timestamp": { "type": "string", "format": "date-time" }
+        }
     }
   },
   "auth": {
@@ -33,9 +84,25 @@
       "schema": { "$ref": "#/entities/UserProfile" },
       "description": "Stores public information about a user."
     },
+    "/groups/{groupId}": {
+      "schema": { "$ref": "#/entities/Group" },
+      "description": "Stores information about a specific savings group."
+    },
     "/groups/{groupId}/messages/{messageId}": {
       "schema": { "$ref": "#/entities/Message" },
       "description": "Stores messages for a specific group."
+    },
+    "/contributions/{contributionId}": {
+        "schema": { "$ref": "#/entities/Contribution" },
+        "description": "Stores all contribution records across all groups."
+    },
+    "/loans/{loanId}": {
+        "schema": { "$ref": "#/entities/Loan" },
+        "description": "Stores all loan records across all groups."
+    },
+    "/receipts/{receiptId}": {
+        "schema": { "$ref": "#/entities/Receipt" },
+        "description": "Stores all receipt records across all groups."
     }
   }
 }

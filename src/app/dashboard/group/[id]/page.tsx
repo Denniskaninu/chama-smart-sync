@@ -3,11 +3,10 @@
 
 import { useMemo } from 'react';
 import { notFound, useParams } from 'next/navigation';
-import { useFirestore, useDoc, useCollection } from '@/firebase';
+import { useFirestore, useDoc, useCollection, useUser } from '@/firebase';
 import { doc, collection, query, where } from 'firebase/firestore';
-import type { ChamaGroup, Contribution, Loan, Receipt, UserProfile } from '@/lib/types';
+import type { ChamaGroup, Contribution, Loan, Receipt } from '@/lib/types';
 import { GroupClient } from '@/components/chama/group-client';
-import { user as placeholderUser } from '@/lib/placeholder-data';
 import { Skeleton } from '@/components/ui/skeleton';
 
 function GroupPageSkeleton() {
@@ -29,6 +28,7 @@ export default function GroupPage() {
   const params = useParams();
   const id = params.id as string;
   const firestore = useFirestore();
+  const { user: currentUser, loading: loadingUser } = useUser();
 
   // --- Group Data ---
   const groupRef = useMemo(() => {
@@ -56,14 +56,21 @@ export default function GroupPage() {
   }, [firestore, id]);
   const { data: receipts, loading: loadingReceipts } = useCollection<Receipt>(receiptsQuery);
 
-  const loading = loadingGroup || loadingContributions || loadingLoans || loadingReceipts;
+  const loading = loadingGroup || loadingContributions || loadingLoans || loadingReceipts || loadingUser;
 
   if (loading) {
     return <GroupPageSkeleton />;
   }
-
+  
+  // This is the important part: if the group isn't found OR there was an error fetching it, show 404.
   if (!group || errorGroup) {
     notFound();
+  }
+
+  // Also ensure we have a current user before rendering the client
+  if (!currentUser) {
+    // or redirect to login
+    return <GroupPageSkeleton />;
   }
 
   return (
@@ -72,7 +79,6 @@ export default function GroupPage() {
       initialContributions={contributions || []}
       initialLoans={loans || []}
       initialReceipts={receipts || []}
-      currentUser={placeholderUser} // Using placeholder user for now
     />
   );
 }
