@@ -222,7 +222,7 @@ export function GroupClient({ group, contributions, loans, messages, receipts, c
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 {receipts.map(receipt => (
                    <div key={receipt.id} className="relative aspect-[2/3] rounded-lg overflow-hidden border shadow-sm">
-                     <Image src={receipt.url} alt={`Receipt from ${formatDate(receipt.timestamp)}`} layout="fill" objectFit="cover" data-ai-hint="receipt paper" />
+                     <Image src={receipt.url} alt={`Receipt from ${formatDate(receipt.timestamp)}`} fill objectFit="cover" data-ai-hint="receipt paper" />
                      <div className="absolute inset-x-0 bottom-0 bg-black/50 p-2 text-white">
                         <p className="text-xs truncate">Uploaded by {group.members.find(m => m.id === receipt.uploadedBy)?.name}</p>
                      </div>
