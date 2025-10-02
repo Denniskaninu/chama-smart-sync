@@ -224,7 +224,7 @@ export default function AuthenticationPage() {
                   <CardDescription>
                     Create an account to start managing your chamas.
                   </CardDescription>
-                </Header>
+                </CardHeader>
                 <CardContent>
                 <Form {...registerForm}>
                     <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-4">
@@ -311,3 +311,5 @@ export default function AuthenticationPage() {
     </div>
   );
 }
+
+    
