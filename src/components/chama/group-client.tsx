@@ -31,42 +31,53 @@ import { ContributionsLineChart, LoansPieChart } from "@/components/chama/charts
 import { MpesaReferenceCheck } from "@/components/chama/mpesa-check";
 import type { ChamaGroup, Contribution, Loan, Message, Receipt, UserProfile } from "@/lib/types";
 import { loansChartData, contributionsChartData } from "@/lib/placeholder-data";
-import { Plus, ArrowRight, Paperclip, Send, ThumbsDown, ThumbsUp, Loader2 } from "lucide-react";
+import { Plus, ArrowRight, Paperclip, Send, ThumbsDown, ThumbsUp, Loader2, Vote } from "lucide-react";
 import Image from "next/image";
 import { Separator } from "../ui/separator";
 import { Input } from "../ui/input";
 import { useUser, useFirestore, useCollection } from "@/firebase";
-import { collection, query, orderBy, addDoc, serverTimestamp, setDoc, doc } from "firebase/firestore";
+import { collection, query, orderBy, addDoc, serverTimestamp, setDoc, doc, updateDoc } from "firebase/firestore";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { useToast } from "@/hooks/use-toast";
 
 
 type GroupClientProps = {
   group: ChamaGroup;
-  contributions: Contribution[];
-  loans: Loan[];
-  receipts: Receipt[];
+  initialContributions: Contribution[];
+  initialLoans: Loan[];
+  initialReceipts: Receipt[];
   currentUser: UserProfile;
 };
 
-export function GroupClient({ group, contributions, loans, receipts, currentUser }: GroupClientProps) {
+export function GroupClient({ group, initialContributions, initialLoans, initialReceipts, currentUser }: GroupClientProps) {
   const { user: authUser } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
   const [newMessage, setNewMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
+  
+  // Real-time listeners for dynamic data
   const messagesQuery = useMemo(() => {
     if (!firestore) return null;
-    // Correctly query the subcollection for the specific group
-    return query(
-        collection(firestore, 'groups', group.id, 'messages'), 
-        orderBy('timestamp', 'asc')
-    );
+    return query(collection(firestore, 'groups', group.id, 'messages'), orderBy('timestamp', 'asc'));
   }, [firestore, group.id]);
-
   const { data: messages, loading: loadingMessages, error: errorMessages } = useCollection<Message>(messagesQuery);
   
+  const contributionsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'contributions'), where('groupId', '==', group.id));
+  }, [firestore, group.id]);
+  const { data: contributions } = useCollection<Contribution>(contributionsQuery, { initialData: initialContributions });
+
+  const loansQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'loans'), where('groupId', '==', group.id));
+  }, [firestore, group.id]);
+  const { data: loans } = useCollection<Loan>(loansQuery, { initialData: initialLoans });
+
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -87,29 +98,60 @@ export function GroupClient({ group, contributions, loans, receipts, currentUser
         timestamp: serverTimestamp(),
     };
 
-    try {
-        const messagesCol = collection(firestore, 'groups', group.id, 'messages');
-        const docRef = doc(messagesCol); // Create a new doc reference
-        
-        // Use setDoc instead of addDoc to get access to the .catch block
-        setDoc(docRef, messageData)
-            .catch(async (serverError) => {
-                const permissionError = new FirestorePermissionError({
-                    path: docRef.path,
-                    operation: 'create',
-                    requestResourceData: messageData,
-                });
-                errorEmitter.emit('permission-error', permissionError);
+    const messagesCol = collection(firestore, 'groups', group.id, 'messages');
+    const docRef = doc(messagesCol);
+    
+    setDoc(docRef, messageData)
+        .catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: docRef.path,
+                operation: 'create',
+                requestResourceData: messageData,
             });
+            errorEmitter.emit('permission-error', permissionError);
+        });
 
-        setNewMessage("");
-    } catch (error) {
-        // This catch block will likely not be hit for permission errors with the new structure,
-        // but it's good practice to keep it for other potential errors.
-        console.error("Error sending message: ", error);
-    } finally {
-        setIsSending(false);
-    }
+    setNewMessage("");
+    setIsSending(false);
+  };
+  
+  const handleAdvanceMerryGoRound = async () => {
+    if (!firestore) return;
+    const groupRef = doc(firestore, 'groups', group.id);
+    const nextIndex = (group.merryGoRoundIndex + 1) % group.members.length;
+    
+    updateDoc(groupRef, { merryGoRoundIndex: nextIndex })
+        .then(() => {
+            toast({ title: "Success", description: "Advanced to the next member in the merry-go-round." });
+        })
+        .catch(async (serverError) => {
+            const permissionError = new FirestorePermissionError({
+                path: groupRef.path,
+                operation: 'update',
+                requestResourceData: { merryGoRoundIndex: nextIndex },
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({ variant: "destructive", title: "Error", description: "Could not advance merry-go-round." });
+        });
+  };
+
+  const handleLoanVote = async (loanId: string, vote: 'approved' | 'rejected') => {
+      if (!firestore) return;
+      const loanRef = doc(firestore, 'loans', loanId);
+
+      updateDoc(loanRef, { status: vote })
+        .then(() => {
+            toast({ title: "Vote Cast", description: `You have ${vote} the loan.` });
+        })
+        .catch(async (serverError) => {
+             const permissionError = new FirestorePermissionError({
+                path: loanRef.path,
+                operation: 'update',
+                requestResourceData: { status: vote },
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({ variant: "destructive", title: "Error", description: "Could not cast vote." });
+        });
   };
 
   const currentMerryGoRoundMember = group.members[group.merryGoRoundIndex];
@@ -117,7 +159,6 @@ export function GroupClient({ group, contributions, loans, receipts, currentUser
   const formatCurrency = (amount: number) => `KSH ${amount.toLocaleString()}`;
   const formatDate = (date: any) => {
     if (!date) return '...';
-    // Handle both Firebase Timestamps and JS Date strings
     const jsDate = date.toDate ? date.toDate() : new Date(date);
     return jsDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   }
@@ -152,7 +193,7 @@ export function GroupClient({ group, contributions, loans, receipts, currentUser
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {contributions.map((c) => (
+                  {(contributions || initialContributions).map((c) => (
                     <TableRow key={c.id}>
                       <TableCell className="font-medium">{c.memberName}</TableCell>
                       <TableCell className="text-right">{formatCurrency(c.amount)}</TableCell>
@@ -177,12 +218,12 @@ export function GroupClient({ group, contributions, loans, receipts, currentUser
             <CardContent className="flex flex-col items-center text-center space-y-4">
               <p className="text-muted-foreground">Current Beneficiary</p>
               <Avatar className="h-24 w-24 border-4 border-primary shadow-lg">
-                <AvatarImage src={currentMerryGoRoundMember.avatarUrl} />
-                <AvatarFallback className="text-3xl">{currentMerryGoRoundMember.name.charAt(0)}</AvatarFallback>
+                <AvatarImage src={currentMerryGoRoundMember?.avatarUrl} />
+                <AvatarFallback className="text-3xl">{currentMerryGoRoundMember?.name.charAt(0)}</AvatarFallback>
               </Avatar>
-              <h3 className="text-2xl font-bold font-headline">{currentMerryGoRoundMember.name}</h3>
+              <h3 className="text-2xl font-bold font-headline">{currentMerryGoRoundMember?.name}</h3>
               <Badge>Cycle {group.merryGoRoundIndex + 1} of {group.members.length}</Badge>
-              <Button>
+              <Button onClick={handleAdvanceMerryGoRound}>
                 Advance to Next Member <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </CardContent>
@@ -200,7 +241,7 @@ export function GroupClient({ group, contributions, loans, receipts, currentUser
                 <Button><Plus className="mr-2 h-4 w-4" />Request Loan</Button>
               </div>
               <div className="space-y-4">
-                {loans.map(loan => (
+                {(loans || initialLoans).map(loan => (
                   <div key={loan.id} className="border rounded-lg p-4 space-y-3">
                     <div className="flex justify-between items-start">
                       <div>
@@ -211,10 +252,10 @@ export function GroupClient({ group, contributions, loans, receipts, currentUser
                     </div>
                     {loan.status === 'pending' && (
                        <div className="flex items-center justify-between pt-2 border-t">
-                         <p className="text-sm text-muted-foreground">Vote now:</p>
+                         <p className="text-sm text-muted-foreground flex items-center gap-2"><Vote className="h-4 w-4" /> Vote now:</p>
                          <div className="flex gap-2">
-                          <Button variant="outline" size="sm"><ThumbsUp className="h-4 w-4 mr-2 text-green-500" />Approve</Button>
-                          <Button variant="outline" size="sm"><ThumbsDown className="h-4 w-4 mr-2 text-red-500" />Reject</Button>
+                          <Button variant="outline" size="sm" onClick={() => handleLoanVote(loan.id, 'approved')}><ThumbsUp className="h-4 w-4 mr-2 text-green-500" />Approve</Button>
+                          <Button variant="outline" size="sm" onClick={() => handleLoanVote(loan.id, 'rejected')}><ThumbsDown className="h-4 w-4 mr-2 text-red-500" />Reject</Button>
                          </div>
                        </div>
                     )}
@@ -301,7 +342,7 @@ export function GroupClient({ group, contributions, loans, receipts, currentUser
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {receipts.map(receipt => (
+                {initialReceipts.map(receipt => (
                    <div key={receipt.id} className="relative aspect-[2/3] rounded-lg overflow-hidden border shadow-sm">
                      <Image src={receipt.url} alt={`Receipt from ${formatDate(receipt.timestamp)}`} fill objectFit="cover" data-ai-hint="receipt paper" />
                      <div className="absolute inset-x-0 bottom-0 bg-black/50 p-2 text-white">

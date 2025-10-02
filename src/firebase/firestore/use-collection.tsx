@@ -28,17 +28,25 @@ interface UseCollectionResult<T> {
   error: Error | null;
 }
 
+interface UseCollectionOptions<T> {
+    initialData?: T[];
+}
+
 export function useCollection<T extends DocumentData>(
-  query: Query | null
+  query: Query | null,
+  options?: UseCollectionOptions<T>
 ): UseCollectionResult<T> {
-  const [data, setData] = useState<T[] | null>(null);
+  const [data, setData] = useState<T[] | null>(options?.initialData || null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     // If the query is null or undefined, don't do anything.
     if (!query) {
-      setData(null);
+      // If we have initial data, don't show loading state, just use that.
+      if (!options?.initialData) {
+        setData(null);
+      }
       setLoading(false);
       return;
     }
@@ -63,9 +71,9 @@ export function useCollection<T extends DocumentData>(
         // We construct a more generic error here. The listener will throw it for dev overlay.
         if (err.code === 'permission-denied') {
             permissionError = new FirestorePermissionError({
-              // The specific path for collection group queries isn't directly available on the query object.
-              // The developer will see the full error with path in the dev console via the listener.
-              path: `Collection Group Query`,
+              // This path is a placeholder; the actual path will be visible in the developer console
+              // via the error thrown by the Firebase SDK itself. This provides context for our listener.
+              path: `Firestore Collection Query`,
               operation: 'list',
             });
             // Emit the error so our listener can catch it and show it in the overlay.
@@ -83,6 +91,7 @@ export function useCollection<T extends DocumentData>(
 
     // Unsubscribe from the listener when the component unmounts.
     return () => unsubscribe();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
   return { data, loading, error };
