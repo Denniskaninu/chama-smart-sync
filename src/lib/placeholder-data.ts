@@ -1,4 +1,4 @@
-import type { UserProfile, ChamaGroup, Contribution, Loan, Message, Receipt } from './types';
+import type { UserProfile, ChamaGroup, Contribution, Loan, Message, Receipt, SubscriptionPlan, PaymentMethod, Invoice } from './types';
 import { placeholderImages } from './placeholder-images';
 
 const findImage = (id: string) => placeholderImages.find(img => img.id === id)?.imageUrl || '';
@@ -80,3 +80,59 @@ export const loansChartData = [
     { status: "pending", count: 3, fill: "var(--color-pending)" },
     { status: "rejected", count: 2, fill: "var(--color-rejected)" },
   ];
+
+// Data for Billing Page
+export const subscriptions: SubscriptionPlan[] = [
+    {
+        planId: 'free',
+        name: 'Free Plan',
+        description: 'For individuals and small groups just getting started.',
+        price: 0,
+        features: ['Up to 3 Groups', 'Basic Reporting', 'Community Support'],
+        status: 'inactive',
+        usage: {
+            groupsUsed: 0,
+            groupsLimit: 0,
+        }
+    },
+    {
+        planId: 'pro',
+        name: 'Pro Plan',
+        description: 'For larger groups and chamas that need more power.',
+        price: 15,
+        features: ['Unlimited Groups', 'Advanced Reporting', 'Priority Support', 'Loan Management'],
+        status: 'inactive',
+        usage: {
+            groupsUsed: 0,
+            groupsLimit: 0,
+        }
+    },
+    {
+        planId: 'free',
+        name: 'Free Plan',
+        description: 'For individuals and small groups just getting started.',
+        price: 0,
+        features: ['Up to 3 Groups', 'Basic Reporting', 'Community Support'],
+        status: 'active',
+        usage: {
+            groupsUsed: 2,
+            groupsLimit: 3,
+        }
+    }
+];
+
+export const paymentMethods: PaymentMethod[] = [
+    {
+        id: 'pm_1',
+        cardType: 'Visa',
+        last4: '1234',
+        expiry: '06/2027',
+        isPrimary: true,
+    }
+];
+
+export const invoices: Invoice[] = [
+    { id: "INV001", date: "June 2024", amount: 5.00, status: "Paid" },
+    { id: "INV002", date: "May 2024", amount: 5.00, status: "Paid" },
+    { id: "INV003", date: "April 2024", amount: 5.00, status: "Paid" },
+];

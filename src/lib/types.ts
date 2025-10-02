@@ -55,3 +55,31 @@ export interface Receipt {
     uploadedBy: string;
     timestamp: string; // ISO string
 }
+
+export interface SubscriptionPlan {
+    planId: string;
+    name: string;
+    description: string;
+    price: number;
+    features: string[];
+    status: 'active' | 'inactive';
+    usage: {
+        groupsUsed: number;
+        groupsLimit: number;
+    }
+}
+
+export interface PaymentMethod {
+    id: string;
+    cardType: string;
+    last4: string;
+    expiry: string;
+    isPrimary: boolean;
+}
+
+export interface Invoice {
+    id: string;
+    date: string;
+    amount: number;
+    status: 'Paid' | 'Pending' | 'Failed';
+}

@@ -14,14 +14,18 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, CreditCard, Download, Plus } from "lucide-react";
+import { CheckCircle, CreditCard, Download, Plus, Check } from "lucide-react";
+import { useUser } from "@/firebase";
+import { subscriptions, paymentMethods, invoices } from "@/lib/placeholder-data";
+import type { SubscriptionPlan } from "@/lib/types";
 
 export default function BillingPage() {
-    const invoices = [
-        { id: "INV001", date: "June 2024", amount: "5.00", status: "Paid" },
-        { id: "INV002", date: "May 2024", amount: "5.00", status: "Paid" },
-        { id: "INV003", date: "April 2024", amount: "5.00", status: "Paid" },
-    ];
+    const { user } = useUser();
+    const currentPlan = subscriptions.find(sub => sub.status === 'active');
+    const freePlan = subscriptions.find(sub => sub.planId === 'free');
+    const proPlan = subscriptions.find(sub => sub.planId === 'pro');
+
+    if (!user || !currentPlan || !freePlan || !proPlan) return null;
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -31,27 +35,54 @@ export default function BillingPage() {
           Manage your subscription and payment methods.
         </p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
         <div className="md:col-span-2 space-y-8">
             <Card>
                 <CardHeader>
                 <CardTitle>Current Plan</CardTitle>
-                <CardDescription>You are currently on the Free plan.</CardDescription>
+                <CardDescription>You are currently on the <span className="font-semibold text-primary">{currentPlan.name}</span>.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                 <div className="p-6 bg-muted rounded-lg space-y-4">
                     <div className="flex justify-between items-baseline">
-                        <h3 className="text-2xl font-bold font-headline">Free Plan</h3>
-                        <p><span className="text-4xl font-bold">$0</span>/month</p>
+                        <h3 className="text-2xl font-bold font-headline">{currentPlan.name}</h3>
+                        <p><span className="text-4xl font-bold">${currentPlan.price}</span>/month</p>
                     </div>
                     <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">Group usage: 2 of 3 groups</p>
-                        <Progress value={66} />
+                        <p className="text-sm text-muted-foreground">Group usage: {currentPlan.usage.groupsUsed} of {currentPlan.usage.groupsLimit} groups</p>
+                        <Progress value={(currentPlan.usage.groupsUsed / currentPlan.usage.groupsLimit) * 100} />
                     </div>
                 </div>
-                <Button>Upgrade Plan</Button>
                 </CardContent>
             </Card>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {[freePlan, proPlan].map((plan: SubscriptionPlan) => (
+                    <Card key={plan.planId} className={`flex flex-col ${currentPlan.planId === plan.planId ? 'border-primary' : ''}`}>
+                        <CardHeader>
+                            <CardTitle>{plan.name}</CardTitle>
+                            <CardDescription>{plan.description}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex-grow space-y-4">
+                             <p className="text-4xl font-bold">${plan.price}<span className="text-sm font-normal text-muted-foreground">/month</span></p>
+                            <ul className="space-y-2 text-sm">
+                                {plan.features.map(feature => (
+                                    <li key={feature} className="flex items-center gap-2">
+                                        <Check className="h-4 w-4 text-green-500"/>
+                                        {feature}
+                                    </li>
+                                ))}
+                            </ul>
+                        </CardContent>
+                        <CardFooter>
+                            <Button className="w-full" disabled={currentPlan.planId === plan.planId}>
+                                {currentPlan.planId === plan.planId ? 'Current Plan' : 'Upgrade'}
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                ))}
+            </div>
+
 
              <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
@@ -62,16 +93,18 @@ export default function BillingPage() {
                      <Button variant="outline"><Plus className="mr-2 h-4 w-4" /> Add Method</Button>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center gap-4">
-                            <CreditCard className="h-8 w-8 text-muted-foreground" />
-                            <div>
-                                <p className="font-semibold">Visa ending in 1234</p>
-                                <p className="text-sm text-muted-foreground">Expires 06/2027</p>
+                    {paymentMethods.map(method => (
+                         <div key={method.id} className="flex items-center justify-between p-4 border rounded-lg">
+                            <div className="flex items-center gap-4">
+                                <CreditCard className="h-8 w-8 text-muted-foreground" />
+                                <div>
+                                    <p className="font-semibold">{method.cardType} ending in {method.last4}</p>
+                                    <p className="text-sm text-muted-foreground">Expires {method.expiry}</p>
+                                </div>
                             </div>
+                            {method.isPrimary && <Badge variant="secondary">Primary</Badge>}
                         </div>
-                        <Badge variant="secondary">Primary</Badge>
-                    </div>
+                    ))}
                 </CardContent>
             </Card>
 
@@ -90,7 +123,7 @@ export default function BillingPage() {
                                     <p className="text-sm text-muted-foreground">Invoice #{invoice.id}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="font-semibold">${invoice.amount}</p>
+                                    <p className="font-semibold">${invoice.amount.toFixed(2)}</p>
                                     <Badge variant={invoice.status === 'Paid' ? 'default' : 'secondary'} className="mt-1 bg-green-500/20 text-green-700 border-green-500/30">
                                         <CheckCircle className="mr-1 h-3 w-3"/>{invoice.status}
                                     </Badge>
