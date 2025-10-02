@@ -1,5 +1,6 @@
 "use client";
 
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   Tabs,
   TabsContent,
@@ -29,25 +30,82 @@ import { ContributionsLineChart, LoansPieChart } from "@/components/chama/charts
 import { MpesaReferenceCheck } from "@/components/chama/mpesa-check";
 import type { ChamaGroup, Contribution, Loan, Message, Receipt, UserProfile } from "@/lib/types";
 import { loansChartData, contributionsChartData } from "@/lib/placeholder-data";
-import { Plus, ArrowRight, Paperclip, Send, ThumbsDown, ThumbsUp } from "lucide-react";
+import { Plus, ArrowRight, Paperclip, Send, ThumbsDown, ThumbsUp, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { Separator } from "../ui/separator";
 import { Input } from "../ui/input";
+import { useUser, useFirestore } from "@/firebase";
+import { useCollection } from "react-firebase-hooks/firestore";
+import { collection, query, orderBy, addDoc, serverTimestamp } from "firebase/firestore";
+
 
 type GroupClientProps = {
   group: ChamaGroup;
   contributions: Contribution[];
   loans: Loan[];
-  messages: Message[];
+  // messages: Message[]; // Will be fetched from firestore
   receipts: Receipt[];
   currentUser: UserProfile;
 };
 
-export function GroupClient({ group, contributions, loans, messages, receipts, currentUser }: GroupClientProps) {
+export function GroupClient({ group, contributions, loans, receipts, currentUser }: GroupClientProps) {
+  const { user: authUser } = useUser();
+  const firestore = useFirestore();
+  const [newMessage, setNewMessage] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const messagesQuery = useMemo(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'groups', group.id, 'messages'), orderBy('timestamp', 'asc'));
+  }, [firestore, group.id]);
+
+  const [messagesSnapshot, loadingMessages, errorMessages] = useCollection(messagesQuery);
+
+  const messages = useMemo(() => {
+    if (!messagesSnapshot) return [];
+    return messagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
+  }, [messagesSnapshot]);
+  
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+
+  const handleSendMessage = async () => {
+    if (!firestore || !authUser || !newMessage.trim()) return;
+
+    setIsSending(true);
+    try {
+        const messagesCol = collection(firestore, 'groups', group.id, 'messages');
+        await addDoc(messagesCol, {
+            groupId: group.id,
+            senderId: authUser.uid,
+            text: newMessage,
+            timestamp: serverTimestamp(),
+        });
+        setNewMessage("");
+    } catch (error) {
+        console.error("Error sending message: ", error);
+        // Optionally show a toast notification for the error
+    } finally {
+        setIsSending(false);
+    }
+  };
+
   const currentMerryGoRoundMember = group.members[group.merryGoRoundIndex];
 
   const formatCurrency = (amount: number) => `KSH ${amount.toLocaleString()}`;
-  const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const formatDate = (date: any) => {
+    if (!date) return '...';
+    // Handle both Firebase Timestamps and JS Date strings
+    const jsDate = date.toDate ? date.toDate() : new Date(date);
+    return jsDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
 
   return (
     <div className="space-y-6">
@@ -165,41 +223,58 @@ export function GroupClient({ group, contributions, loans, messages, receipts, c
               <CardTitle>Community Wall</CardTitle>
               <CardDescription>Discuss group matters here.</CardDescription>
             </CardHeader>
-            <CardContent className="flex-grow overflow-y-auto space-y-4">
-              {messages.map(message => {
-                const isCurrentUser = message.senderId === currentUser.id;
+            <CardContent className="flex-grow overflow-y-auto space-y-4 p-4">
+              {loadingMessages && <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}
+              {errorMessages && <p className="text-destructive text-center">Error loading messages.</p>}
+              {!loadingMessages && messages.map(message => {
+                const isCurrentUser = message.senderId === authUser?.uid;
                 const member = group.members.find(m => m.id === message.senderId);
+                const senderUser = isCurrentUser ? authUser : null;
+                const senderPhoto = isCurrentUser ? senderUser?.photoURL : member?.avatarUrl;
+                const senderName = isCurrentUser ? senderUser?.displayName : member?.name;
+                const senderFallback = (isCurrentUser ? senderUser?.displayName?.charAt(0) : member?.name.charAt(0)) || 'U';
+
                 return (
                   <div key={message.id} className={`flex items-end gap-2 ${isCurrentUser ? 'justify-end' : ''}`}>
                     {!isCurrentUser && (
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={member?.avatarUrl} />
-                        <AvatarFallback>{member?.name.charAt(0)}</AvatarFallback>
+                        <AvatarImage src={senderPhoto || undefined} />
+                        <AvatarFallback>{senderFallback}</AvatarFallback>
                       </Avatar>
                     )}
                     <div className={`max-w-xs rounded-lg p-3 ${isCurrentUser ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                      {!isCurrentUser && <p className="text-sm font-semibold mb-1">{senderName}</p>}
                       <p className="text-sm">{message.text}</p>
-                      <p className={`text-xs mt-1 ${isCurrentUser ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{formatDate(message.timestamp)}</p>
+                      <p className={`text-xs mt-1 text-right ${isCurrentUser ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{formatDate(message.timestamp)}</p>
                     </div>
                      {isCurrentUser && (
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={member?.avatarUrl} />
-                        <AvatarFallback>{member?.name.charAt(0)}</AvatarFallback>
+                        <AvatarImage src={senderPhoto || undefined} />
+                        <AvatarFallback>{senderFallback}</AvatarFallback>
                       </Avatar>
                     )}
                   </div>
                 );
               })}
+               <div ref={messagesEndRef} />
             </CardContent>
             <Separator />
             <div className="p-4">
-              <div className="relative">
-                <Input placeholder="Type a message..." className="pr-20" />
+              <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="relative">
+                <Input 
+                    placeholder="Type a message..." 
+                    className="pr-28" 
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    disabled={isSending}
+                />
                 <div className="absolute top-1/2 right-2 -translate-y-1/2 flex items-center gap-2">
-                  <Button variant="ghost" size="icon"><Paperclip className="h-4 w-4" /></Button>
-                  <Button size="sm">Send <Send className="h-4 w-4 ml-2" /></Button>
+                  <Button variant="ghost" size="icon" type="button" disabled={isSending}><Paperclip className="h-4 w-4" /></Button>
+                  <Button size="sm" type="submit" disabled={isSending || !newMessage.trim()}>
+                    {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Send <Send className="h-4 w-4 ml-2" /></>}
+                  </Button>
                 </div>
-              </div>
+              </form>
             </div>
           </Card>
         </TabsContent>

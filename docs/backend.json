@@ -11,6 +11,18 @@
         "photoURL": { "type": "string", "format": "uri", "description": "URL of the user's profile picture." }
       },
       "required": ["uid", "email"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "A message sent within a group.",
+      "type": "object",
+      "properties": {
+        "groupId": { "type": "string", "description": "The ID of the group where the message was sent." },
+        "senderId": { "type": "string", "description": "The ID of the user who sent the message." },
+        "text": { "type": "string", "description": "The content of the message." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "The time the message was sent." }
+      },
+      "required": ["groupId", "senderId", "text", "timestamp"]
     }
   },
   "auth": {
@@ -20,6 +32,10 @@
     "/users/{userId}": {
       "schema": { "$ref": "#/entities/UserProfile" },
       "description": "Stores public information about a user."
+    },
+    "/groups/{groupId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/Message" },
+      "description": "Stores messages for a specific group."
     }
   }
 }

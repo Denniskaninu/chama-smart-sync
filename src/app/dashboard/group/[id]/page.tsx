@@ -1,5 +1,5 @@
 import { GroupClient } from "@/components/chama/group-client";
-import { groups, contributions, loans, messages, receipts, user } from "@/lib/placeholder-data";
+import { groups, contributions, loans, receipts, user } from "@/lib/placeholder-data";
 import { notFound } from "next/navigation";
 
 export default function GroupPage({ params }: { params: { id: string } }) {
@@ -12,7 +12,6 @@ export default function GroupPage({ params }: { params: { id: string } }) {
   // Filter data for the specific group
   const groupContributions = contributions.filter(c => c.groupId === group.id);
   const groupLoans = loans.filter(l => l.groupId === group.id);
-  const groupMessages = messages.filter(m => m.groupId === group.id);
   const groupReceipts = receipts.filter(r => r.groupId === group.id);
 
   return (
@@ -20,7 +19,6 @@ export default function GroupPage({ params }: { params: { id: string } }) {
       group={group} 
       contributions={groupContributions}
       loans={groupLoans}
-      messages={groupMessages}
       receipts={groupReceipts}
       currentUser={user}
     />

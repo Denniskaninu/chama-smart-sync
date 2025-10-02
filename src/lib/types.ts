@@ -1,3 +1,5 @@
+import { Timestamp } from "firebase/firestore";
+
 export type UserRole = "admin" | "treasurer" | "member";
 
 export interface UserProfile {
@@ -45,7 +47,7 @@ export interface Message {
     groupId: string;
     senderId: string;
     text: string;
-    timestamp: string; // ISO string
+    timestamp: Timestamp;
 }
 
 export interface Receipt {

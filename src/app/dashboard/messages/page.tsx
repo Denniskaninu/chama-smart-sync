@@ -1,14 +1,45 @@
 "use client";
+import React, { useMemo, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { messages, user as currentUser, groups } from "@/lib/placeholder-data";
 import { Send, Paperclip } from "lucide-react";
+import { useUser, useFirestore } from "@/firebase";
+import { useCollection } from "react-firebase-hooks/firestore";
+import { collectionGroup, query, orderBy, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import type { Message } from "@/lib/types";
+import { groups as staticGroups, user as staticUser } from "@/lib/placeholder-data"; // For member/group info
 
 export default function MessagesPage() {
-    const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    const { user: authUser } = useUser();
+    const firestore = useFirestore();
+    const [newMessage, setNewMessage] = useState("");
+
+    // This is a more complex query. It gets all messages from all groups.
+    // In a large-scale app, this should be handled differently (e.g., a unified feed).
+    const messagesQuery = useMemo(() => {
+        if (!firestore) return null;
+        return query(collectionGroup(firestore, 'messages'), orderBy('timestamp', 'asc'));
+    }, [firestore]);
+
+    const [messagesSnapshot, loading, error] = useCollection(messagesQuery);
+
+    const messages = useMemo(() => {
+        if (!messagesSnapshot) return [];
+        return messagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
+    }, [messagesSnapshot]);
+
+    const allMembers = useMemo(() => staticGroups.flatMap(g => g.members), []);
+
+    const formatDate = (date: any) => {
+        if (!date) return '...';
+        // Firebase timestamp to JS Date
+        const jsDate = date.toDate ? date.toDate() : new Date(date);
+        return jsDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
   return (
     <div className="space-y-8">
         <div>
@@ -18,46 +49,56 @@ export default function MessagesPage() {
       <Card className="flex flex-col h-[70vh]">
         <CardHeader>
           <CardTitle>All Group Messages</CardTitle>
-          <CardDescription>Discuss group matters here.</CardDescription>
+          <CardDescription>A combined feed of all your group discussions.</CardDescription>
         </CardHeader>
-        <CardContent className="flex-grow overflow-y-auto space-y-4">
-          {messages.map(message => {
-            const isCurrentUser = message.senderId === currentUser.id;
-            const member = groups.flatMap(g => g.members).find(m => m.id === message.senderId);
-            const group = groups.find(g => g.id === message.groupId);
-            return (
-              <div key={message.id} className={`flex items-end gap-2 ${isCurrentUser ? 'justify-end' : ''}`}>
-                {!isCurrentUser && (
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={member?.avatarUrl} />
-                    <AvatarFallback>{member?.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                )}
-                <div className={`max-w-md rounded-lg p-3 ${isCurrentUser ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold">{member?.name}</p>
-                    <p className="text-xs text-muted-foreground/80">in {group?.name}</p>
-                  </div>
-                  <p className="text-sm mt-1">{message.text}</p>
-                  <p className={`text-xs mt-1 text-right ${isCurrentUser ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{formatDate(message.timestamp)}</p>
+        <CardContent className="flex-grow overflow-y-auto space-y-4 p-4">
+            {loading && <p>Loading messages...</p>}
+            {error && <p>Error loading messages.</p>}
+            {!loading && messages.map(message => {
+                const isCurrentUser = message.senderId === authUser?.uid;
+                const member = allMembers.find(m => m.id === message.senderId);
+                const group = staticGroups.find(g => g.id === message.groupId);
+                
+                return (
+                <div key={message.id} className={`flex items-end gap-2 ${isCurrentUser ? 'justify-end' : ''}`}>
+                    {!isCurrentUser && (
+                    <Avatar className="h-8 w-8">
+                        <AvatarImage src={member?.avatarUrl} />
+                        <AvatarFallback>{member?.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    )}
+                    <div className={`max-w-md rounded-lg p-3 ${isCurrentUser ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                    <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold">{member?.name || "Unknown User"}</p>
+                        <p className="text-xs text-muted-foreground/80">in {group?.name || "Unknown Group"}</p>
+                    </div>
+                    <p className="text-sm mt-1">{message.text}</p>
+                    <p className={`text-xs mt-1 text-right ${isCurrentUser ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{formatDate(message.timestamp)}</p>
+                    </div>
+                    {isCurrentUser && (
+                    <Avatar className="h-8 w-8">
+                        <AvatarImage src={authUser?.photoURL || undefined} />
+                        <AvatarFallback>{authUser?.displayName?.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    )}
                 </div>
-                 {isCurrentUser && (
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={member?.avatarUrl} />
-                    <AvatarFallback>{member?.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                )}
-              </div>
-            );
-          })}
+                );
+            })}
         </CardContent>
         <Separator />
         <div className="p-4 bg-background">
+            <p className="text-xs text-center text-muted-foreground mb-2">
+                Sending messages from this page is disabled. Please go to a specific group to send a message.
+            </p>
           <div className="relative">
-            <Input placeholder="Type a message..." className="pr-20" />
+            <Input 
+                placeholder="Go to a group to send a message..." 
+                className="pr-20" 
+                disabled
+            />
             <div className="absolute top-1/2 right-2 -translate-y-1/2 flex items-center gap-2">
-              <Button variant="ghost" size="icon"><Paperclip className="h-4 w-4" /></Button>
-              <Button size="sm">Send <Send className="h-4 w-4 ml-2" /></Button>
+              <Button variant="ghost" size="icon" disabled><Paperclip className="h-4 w-4" /></Button>
+              <Button size="sm" disabled>Send <Send className="h-4 w-4 ml-2" /></Button>
             </div>
           </div>
         </div>
