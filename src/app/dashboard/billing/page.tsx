@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -110,4 +111,3 @@ export default function BillingPage() {
     </div>
   );
 }
-import React from "react";
