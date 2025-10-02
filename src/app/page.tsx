@@ -38,6 +38,7 @@ import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
 import { useAuth } from "@/firebase";
 import { placeholderImages } from "@/lib/placeholder-images";
+import { firebaseConfig } from "@/firebase/config";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -125,6 +126,7 @@ export default function AuthenticationPage() {
     setLoading(true);
     try {
       const provider = new GoogleAuthProvider();
+      auth.tenantId = firebaseConfig.authDomain;
       await signInWithPopup(auth, provider);
       toast({
         title: "Login Successful",
@@ -222,7 +224,7 @@ export default function AuthenticationPage() {
                   <CardDescription>
                     Create an account to start managing your chamas.
                   </CardDescription>
-                </CardHeader>
+                </Header>
                 <CardContent>
                 <Form {...registerForm}>
                     <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-4">
