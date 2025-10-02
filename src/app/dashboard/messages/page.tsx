@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Send, Paperclip, Loader2 } from "lucide-react";
+import { Send, Paperclip, Loader2, AlertTriangle } from "lucide-react";
 import { useUser, useFirestore, useCollection } from "@/firebase";
 import { collectionGroup, query, orderBy } from "firebase/firestore";
 import type { Message } from "@/lib/types";
@@ -44,8 +44,19 @@ export default function MessagesPage() {
         </CardHeader>
         <CardContent className="flex-grow overflow-y-auto space-y-4 p-4">
             {loading && <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}
-            {error && <p className="text-destructive text-center">Error loading messages. A Firestore index might be required.</p>}
-            {!loading && messages && messages.map(message => {
+            {error && (
+                 <div className="flex flex-col items-center justify-center h-full text-center">
+                    <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
+                    <h3 className="text-xl font-semibold text-destructive">Error Loading Messages</h3>
+                    <p className="text-muted-foreground mt-2">
+                        There was a problem fetching the messages. This could be due to a Firestore security rule or a missing index.
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-4 p-2 bg-muted rounded-md max-w-md">
+                        <strong>Error:</strong> {error.message}
+                    </p>
+                </div>
+            )}
+            {!loading && !error && messages && messages.map(message => {
                 const isCurrentUser = message.senderId === authUser?.uid;
                 const member = allMembers.find(m => m.id === message.senderId);
                 const group = staticGroups.find(g => g.id === message.groupId);

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type {
   Query,
   DocumentData,
@@ -57,13 +57,23 @@ export function useCollection<T extends DocumentData>(
         setError(null);
       },
       (err) => {
-        // Create a rich, contextual error for permission issues.
-        const permissionError = new FirestorePermissionError({
-          path: query.path,
-          operation: 'list',
-        });
-        // Emit the error so our listener can catch it.
-        errorEmitter.emit('permission-error', permissionError);
+        let permissionError;
+        // Firestore includes the path in the error message for permission denied errors,
+        // but the Query object itself doesn't have a reliable 'path' property for collection groups.
+        // We construct a more generic error here. The listener will throw it for dev overlay.
+        if (err.code === 'permission-denied') {
+            permissionError = new FirestorePermissionError({
+              // The specific path for collection group queries isn't directly available on the query object.
+              // The developer will see the full error with path in the dev console via the listener.
+              path: `Collection Group Query`,
+              operation: 'list',
+            });
+            // Emit the error so our listener can catch it and show it in the overlay.
+            errorEmitter.emit('permission-error', permissionError);
+        } else {
+            // For other errors (like needing an index), we can use the regular error.
+            permissionError = err;
+        }
         
         setError(permissionError);
         setLoading(false);
