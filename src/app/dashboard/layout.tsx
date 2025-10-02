@@ -12,7 +12,7 @@ import {
   FileText,
   TrendingUp,
   CreditCard,
-  UserProfileIcon,
+  User,
 } from "lucide-react";
 
 import {
@@ -48,7 +48,7 @@ function AppSidebar() {
   ];
 
   const bottomMenuItems = [
-    { href: "/dashboard/profile", label: "Profile", icon: UserProfileIcon },
+    { href: "/dashboard/profile", label: "Profile", icon: User },
     { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
     { href: "/dashboard/settings", label: "Settings", icon: Settings },
   ]
