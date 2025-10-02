@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
-import { CreditCard, LogOut, Moon, Settings, Sun, User as UserIcon } from "lucide-react";
+import { LogOut, Moon, Settings, Sun, User as UserIcon } from "lucide-react";
 import { signOut } from "firebase/auth";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -58,8 +58,8 @@ export function UserNav() {
             onClick={() => setTheme(theme === "light" ? "dark" : "light")}
             aria-label="Toggle theme"
         >
-            <Sun className="h-[1.5rem] w-[1.5rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-[1.5rem] w-[1.srem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
         </Button>
         <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -85,12 +85,6 @@ export function UserNav() {
                 <Link href="/dashboard/profile">
                 <UserIcon className="mr-2 h-4 w-4" />
                 <span>Profile</span>
-                </Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-                <Link href="/dashboard/billing">
-                <CreditCard className="mr-2 h-4 w-4" />
-                <span>Billing</span>
                 </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>

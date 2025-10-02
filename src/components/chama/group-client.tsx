@@ -21,14 +21,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -37,7 +29,7 @@ import { ContributionsLineChart, LoansPieChart } from "@/components/chama/charts
 import { MpesaReferenceCheck } from "@/components/chama/mpesa-check";
 import type { ChamaGroup, Contribution, Loan, Message, Receipt, UserProfile } from "@/lib/types";
 import { loansChartData, contributionsChartData } from "@/lib/placeholder-data";
-import { Plus, Check, X, ThumbsUp, ThumbsDown, ArrowRight, Paperclip, Send } from "lucide-react";
+import { Plus, ArrowRight, Paperclip, Send, ThumbsDown, ThumbsUp } from "lucide-react";
 import Image from "next/image";
 import { Separator } from "../ui/separator";
 import { Input } from "../ui/input";
