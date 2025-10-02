@@ -1,20 +1,70 @@
 
 "use client";
+import { useMemo } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useUser } from "@/firebase";
-import { groups, contributions } from "@/lib/placeholder-data";
+import { useUser, useFirestore, useCollection } from "@/firebase";
+import { collection, query, where } from 'firebase/firestore';
 import { Edit, AtSign, Calendar, Landmark } from "lucide-react";
+import type { ChamaGroup, Contribution } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ProfilePage() {
-  const { user } = useUser();
+  const { user, loading: loadingUser } = useUser();
+  const firestore = useFirestore();
 
-  if (!user) return null;
+  const userGroupsQuery = useMemo(() => {
+      if (!firestore || !user) return null;
+      return query(collection(firestore, 'groups'), where('members', 'array-contains', {id: user.uid, name: user.displayName, avatarUrl: user.photoURL || ''}));
+  }, [firestore, user]);
 
-  const userGroups = groups.filter(g => g.members.some(m => m.id === 'user-1'));
-  const userContributions = contributions.filter(c => c.memberId === 'user-1');
-  const totalContributed = userContributions.reduce((acc, c) => acc + c.amount, 0);
+  const userContributionsQuery = useMemo(() => {
+      if (!firestore || !user) return null;
+      return query(collection(firestore, 'contributions'), where('memberId', '==', user.uid));
+  }, [firestore, user]);
+
+  const { data: userGroups, loading: loadingGroups } = useCollection<ChamaGroup>(userGroupsQuery);
+  const { data: userContributions, loading: loadingContributions } = useCollection<Contribution>(userContributionsQuery);
+
+  const totalContributed = useMemo(() => {
+      if (!userContributions) return 0;
+      return userContributions.reduce((acc, c) => acc + c.amount, 0);
+  }, [userContributions]);
+  
+  const loading = loadingUser || loadingGroups || loadingContributions;
+
+  if (loading || !user) return (
+      <div className="space-y-8">
+          <Card>
+              <CardContent className="pt-6">
+                   <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6">
+                        <Skeleton className="h-32 w-32 rounded-full" />
+                        <div className="text-center sm:text-left flex-1 space-y-2">
+                            <Skeleton className="h-8 w-48" />
+                            <Skeleton className="h-5 w-64" />
+                            <Skeleton className="h-5 w-56" />
+                        </div>
+                        <div className="text-center sm:text-right space-y-1">
+                            <Skeleton className="h-5 w-24 ml-auto" />
+                            <Skeleton className="h-8 w-32 ml-auto" />
+                        </div>
+                   </div>
+              </CardContent>
+          </Card>
+          <Card>
+              <CardHeader>
+                <CardTitle><Skeleton className="h-7 w-32" /></CardTitle>
+                <CardDescription><Skeleton className="h-4 w-48" /></CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+              </CardContent>
+          </Card>
+      </div>
+  );
+
 
   return (
     <div className="space-y-8">
@@ -54,7 +104,7 @@ export default function ProfilePage() {
         </CardHeader>
         <CardContent>
             <div className="space-y-4">
-            {userGroups.map(group => (
+            {(userGroups || []).map(group => (
                 <div key={group.id} className="flex items-center justify-between p-3 bg-muted rounded-lg">
                     <div className="font-semibold">{group.name}</div>
                     <div className="text-sm text-muted-foreground">
@@ -62,6 +112,9 @@ export default function ProfilePage() {
                     </div>
                 </div>
             ))}
+             {userGroups?.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">You are not a member of any groups yet.</p>
+            )}
             </div>
         </CardContent>
       </Card>

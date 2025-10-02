@@ -1,4 +1,9 @@
+
 "use client";
+import { useMemo } from 'react';
+import { useFirestore, useCollection } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
+
 import {
   Card,
   CardContent,
@@ -14,12 +19,38 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { contributions } from "@/lib/placeholder-data";
 import { MpesaReferenceCheck } from "@/components/chama/mpesa-check";
+import type { Contribution, ChamaGroup } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function ContributionsPage() {
+    const firestore = useFirestore();
+
+    const contributionsQuery = useMemo(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, 'contributions'), orderBy('date', 'desc'));
+    }, [firestore]);
+
+    const groupsQuery = useMemo(() => {
+        if (!firestore) return null;
+        return collection(firestore, 'groups');
+    }, [firestore]);
+
+    const { data: contributions, loading: loadingContributions } = useCollection<Contribution>(contributionsQuery);
+    const { data: groups, loading: loadingGroups } = useCollection<ChamaGroup>(groupsQuery);
+
+    const getGroupName = (groupId: string) => {
+        return groups?.find(g => g.id === groupId)?.name || 'Unknown Group';
+    };
+
+    const loading = loadingContributions || loadingGroups;
+
     const formatCurrency = (amount: number) => `KSH ${amount.toLocaleString()}`;
-    const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    const formatDate = (date: any) => {
+        if (!date) return '...';
+        const jsDate = date.toDate ? date.toDate() : new Date(date);
+        return jsDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
 
   return (
     <div className="space-y-8">
@@ -44,10 +75,21 @@ export default function ContributionsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {contributions.map((c) => (
+                  {loading && (
+                      [...Array(5)].map((_, i) => (
+                          <TableRow key={i}>
+                              <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                              <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                              <TableCell className="text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
+                              <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                              <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                          </TableRow>
+                      ))
+                  )}
+                  {!loading && contributions?.map((c) => (
                     <TableRow key={c.id}>
                       <TableCell className="font-medium">{c.memberName}</TableCell>
-                      <TableCell>{c.groupId === 'group-1' ? 'Kilimani Young Investors': 'Family & Friends SACCO'}</TableCell>
+                      <TableCell>{getGroupName(c.groupId)}</TableCell>
                       <TableCell className="text-right">{formatCurrency(c.amount)}</TableCell>
                       <TableCell>{formatDate(c.date)}</TableCell>
                       <TableCell className="flex items-center gap-2">
