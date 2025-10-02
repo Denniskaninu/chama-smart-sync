@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // User profile
+    match /users/{userId} {
+      allow read, write: if request.auth.uid == userId;
+    }
+    
+    // Groups
+    match /groups/{groupId} {
+      allow read, write: if request.auth != null 
+        && request.auth.uid in resource.data.members;
+      
+      // Contributions
+      match /contributions/{contributionId} {
+        allow read, write: if request.auth != null 
+          && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+      }
+
+      // Loans
+      match /loans/{loanId} {
+        allow read, write: if request.auth != null 
+          && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+      }
+
+      // Messages
+      match /messages/{messageId} {
+        allow read, write: if request.auth != null 
+          && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+      }
+
+      // Receipts
+      match /receipts/{receiptId} {
+        allow read, write: if request.auth != null 
+          && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+      }
+    }
+  }
+}
