@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Home,
   Users,
@@ -27,11 +27,12 @@ import {
 } from "@/components/ui/sidebar";
 import { UserNav } from "@/components/user-nav";
 import { Logo } from "@/components/icons";
-import { Button } from "@/components/ui/button";
+import { useUser } from "@/firebase";
+import { useEffect } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function AppSidebar() {
   const pathname = usePathname();
-  const { open } = useSidebar();
 
   const menuItems = [
     { href: "/dashboard", label: "Dashboard", icon: Home },
@@ -56,7 +57,7 @@ function AppSidebar() {
             <SidebarMenuItem key={item.label}>
               <Link href={item.href} passHref>
                 <SidebarMenuButton
-                  isActive={pathname.startsWith(item.href) && (item.href !== "/dashboard" || pathname === "/dashboard")}
+                  isActive={pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/dashboard')}
                   tooltip={{
                     children: item.label,
                     className: "font-body",
@@ -94,6 +95,34 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const { user, loading } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace("/");
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user) {
+    return (
+       <div className="flex h-screen w-full items-center justify-center">
+         <div className="p-4 sm:p-6 w-full h-full flex flex-col gap-4">
+            <header className="sticky top-0 z-10 flex h-16 items-center justify-between gap-4 rounded-lg border bg-card px-4 sm:px-6">
+                <Skeleton className="h-8 w-8 md:hidden" />
+                <div className="flex-1">
+                    {/* Placeholder for future search */}
+                </div>
+                <Skeleton className="h-10 w-28" />
+            </header>
+            <main className="flex-1 p-4 sm:p-6 rounded-lg border bg-card">
+              <Skeleton className="h-full w-full" />
+            </main>
+         </div>
+      </div>
+    );
+  }
+
   return (
     <SidebarProvider>
       <AppSidebar />

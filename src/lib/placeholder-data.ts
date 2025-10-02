@@ -1,5 +1,5 @@
 import type { UserProfile, ChamaGroup, Contribution, Loan, Message, Receipt } from './types';
-import { PlaceHolderImages } from './placeholder-images';
+import { placeholderImages as PlaceHolderImages } from './placeholder-images';
 
 const findImage = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageUrl || '';
 
@@ -80,4 +80,4 @@ export const loansChartData = [
     { status: "pending", count: 3, fill: "var(--color-pending)" },
     { status: "rejected", count: 2, fill: "var(--color-rejected)" },
   ];
-export { PlaceHolderImages as placeholderImages } from './placeholder-images';
+export { placeholderImages } from './placeholder-images';

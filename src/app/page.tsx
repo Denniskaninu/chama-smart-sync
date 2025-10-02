@@ -1,12 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Mail, Lock, LogIn, Loader } from "lucide-react";
+import { Mail, Lock, Loader, User as UserIcon } from "lucide-react";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+  updateProfile,
+} from "firebase/auth";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -29,7 +36,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Logo } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
-import { placeholderImages } from "@/lib/placeholder-data";
+import { useAuth } from "@/firebase";
+import { placeholderImages } from "@/lib/placeholder-images";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -55,6 +63,7 @@ export default function AuthenticationPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const auth = useAuth();
   const heroImage = placeholderImages.find(p => p.id === "login-hero");
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
@@ -68,40 +77,69 @@ export default function AuthenticationPage() {
   });
 
   const handleLogin = async (values: z.infer<typeof loginSchema>) => {
+    if (!auth) return;
     setLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log("Login submitted:", values);
-    toast({
-      title: "Login Successful",
-      description: "Welcome back! Redirecting to your dashboard.",
-    });
-    router.push("/dashboard");
-    setLoading(false);
+    try {
+      await signInWithEmailAndPassword(auth, values.email, values.password);
+      toast({
+        title: "Login Successful",
+        description: "Welcome back! Redirecting to your dashboard.",
+      });
+      router.push("/dashboard");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRegister = async (values: z.infer<typeof registerSchema>) => {
+    if (!auth) return;
     setLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log("Register submitted:", values);
-    toast({
-      title: "Registration Successful",
-      description: "Your account has been created. Redirecting...",
-    });
-    router.push("/dashboard");
-    setLoading(false);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
+      await updateProfile(userCredential.user, { displayName: values.name });
+      
+      toast({
+        title: "Registration Successful",
+        description: "Your account has been created. Redirecting...",
+      });
+      router.push("/dashboard");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
   
   const handleGoogleSignIn = async () => {
+    if (!auth) return;
     setLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    toast({
-      title: "Login Successful",
-      description: "Welcome! Redirecting to your dashboard.",
-    });
-    router.push("/dashboard");
-    setLoading(false);
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      toast({
+        title: "Login Successful",
+        description: "Welcome! Redirecting to your dashboard.",
+      });
+      router.push("/dashboard");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Google Sign-In Failed",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -113,7 +151,7 @@ export default function AuthenticationPage() {
               <Logo className="h-8 w-8 text-primary" />
               <span className="text-3xl font-bold font-headline tracking-tighter">ChamaSync</span>
             </Link>
-            <h1 className="text-2xl font-semibold font-headline tracking-tight">Welcome Back</h1>
+            <h1 className="text-2xl font-semibold font-headline tracking-tight">Welcome</h1>
             <p className="text-sm text-muted-foreground">
               Manage your chama with ease.
             </p>
@@ -166,10 +204,10 @@ export default function AuthenticationPage() {
                           </FormItem>
                         )}
                       />
-                      <Button type="submit" className="w-full" disabled={loading}>
+                      <Button type="submit" className="w-full" disabled={loading || !auth}>
                         {loading ? <Loader className="animate-spin" /> : 'Login'}
                       </Button>
-                      <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} type="button" disabled={loading}>
+                      <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} type="button" disabled={loading || !auth}>
                          <GoogleIcon /> Sign in with Google
                       </Button>
                     </form>
@@ -195,7 +233,10 @@ export default function AuthenticationPage() {
                           <FormItem>
                             <FormLabel>Full Name</FormLabel>
                             <FormControl>
-                                <Input placeholder="Juma Clive" {...field} />
+                              <div className="relative">
+                                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                  <Input placeholder="Juma Clive" {...field} className="pl-10" />
+                                </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -208,7 +249,10 @@ export default function AuthenticationPage() {
                           <FormItem>
                             <FormLabel>Email</FormLabel>
                             <FormControl>
-                                <Input placeholder="m@example.com" {...field} />
+                              <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input placeholder="m@example.com" {...field} className="pl-10" />
+                              </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -221,16 +265,19 @@ export default function AuthenticationPage() {
                           <FormItem>
                             <FormLabel>Password</FormLabel>
                             <FormControl>
-                                <Input type="password" placeholder="••••••••" {...field} />
+                              <div className="relative">
+                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input type="password" placeholder="••••••••" {...field} className="pl-10" />
+                              </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                      <Button type="submit" className="w-full" disabled={loading}>
+                      <Button type="submit" className="w-full" disabled={loading || !auth}>
                         {loading ? <Loader className="animate-spin" /> : 'Create an account'}
                       </Button>
-                      <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} type="button" disabled={loading}>
+                      <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} type="button" disabled={loading || !auth}>
                          <GoogleIcon /> Sign up with Google
                       </Button>
                     </form>
