@@ -124,7 +124,7 @@ export default function AuthenticationPage() {
               <TabsTrigger value="register">Sign Up</TabsTrigger>
             </TabsList>
             <TabsContent value="login">
-              <Card className="border-0 shadow-none">
+              <Card className="border-0 shadow-none bg-transparent">
                 <CardHeader>
                   <CardTitle className="text-2xl">Login</CardTitle>
                   <CardDescription>
@@ -178,7 +178,7 @@ export default function AuthenticationPage() {
               </Card>
             </TabsContent>
             <TabsContent value="register">
-              <Card className="border-0 shadow-none">
+              <Card className="border-0 shadow-none bg-transparent">
                 <CardHeader>
                   <CardTitle className="text-2xl">Sign Up</CardTitle>
                   <CardDescription>
