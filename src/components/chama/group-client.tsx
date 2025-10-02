@@ -36,7 +36,7 @@ import { Separator } from "../ui/separator";
 import { Input } from "../ui/input";
 import { useUser, useFirestore } from "@/firebase";
 import { useCollection } from "react-firebase-hooks/firestore";
-import { collection, query, orderBy, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, orderBy, addDoc, serverTimestamp, where } from "firebase/firestore";
 
 
 type GroupClientProps = {
@@ -57,7 +57,11 @@ export function GroupClient({ group, contributions, loans, receipts, currentUser
 
   const messagesQuery = useMemo(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'groups', group.id, 'messages'), orderBy('timestamp', 'asc'));
+    // Correctly query the subcollection for the specific group
+    return query(
+        collection(firestore, 'groups', group.id, 'messages'), 
+        orderBy('timestamp', 'asc')
+    );
   }, [firestore, group.id]);
 
   const [messagesSnapshot, loadingMessages, errorMessages] = useCollection(messagesQuery);
@@ -225,14 +229,13 @@ export function GroupClient({ group, contributions, loans, receipts, currentUser
             </CardHeader>
             <CardContent className="flex-grow overflow-y-auto space-y-4 p-4">
               {loadingMessages && <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}
-              {errorMessages && <p className="text-destructive text-center">Error loading messages.</p>}
+              {errorMessages && <p className="text-destructive text-center">Error loading messages. Check console for details.</p>}
               {!loadingMessages && messages.map(message => {
                 const isCurrentUser = message.senderId === authUser?.uid;
                 const member = group.members.find(m => m.id === message.senderId);
-                const senderUser = isCurrentUser ? authUser : null;
-                const senderPhoto = isCurrentUser ? senderUser?.photoURL : member?.avatarUrl;
-                const senderName = isCurrentUser ? senderUser?.displayName : member?.name;
-                const senderFallback = (isCurrentUser ? senderUser?.displayName?.charAt(0) : member?.name.charAt(0)) || 'U';
+                const senderPhoto = isCurrentUser ? authUser?.photoURL : member?.avatarUrl;
+                const senderName = isCurrentUser ? authUser?.displayName : member?.name;
+                const senderFallback = (senderName?.charAt(0) || 'U').toUpperCase();
 
                 return (
                   <div key={message.id} className={`flex items-end gap-2 ${isCurrentUser ? 'justify-end' : ''}`}>

@@ -5,20 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
-import { Send, Paperclip } from "lucide-react";
+import { Send, Paperclip, Loader2 } from "lucide-react";
 import { useUser, useFirestore } from "@/firebase";
 import { useCollection } from "react-firebase-hooks/firestore";
-import { collectionGroup, query, orderBy, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collectionGroup, query, orderBy } from "firebase/firestore";
 import type { Message } from "@/lib/types";
-import { groups as staticGroups, user as staticUser } from "@/lib/placeholder-data"; // For member/group info
+import { groups as staticGroups } from "@/lib/placeholder-data"; 
 
 export default function MessagesPage() {
     const { user: authUser } = useUser();
     const firestore = useFirestore();
-    const [newMessage, setNewMessage] = useState("");
 
-    // This is a more complex query. It gets all messages from all groups.
-    // In a large-scale app, this should be handled differently (e.g., a unified feed).
     const messagesQuery = useMemo(() => {
         if (!firestore) return null;
         return query(collectionGroup(firestore, 'messages'), orderBy('timestamp', 'asc'));
@@ -35,7 +32,6 @@ export default function MessagesPage() {
 
     const formatDate = (date: any) => {
         if (!date) return '...';
-        // Firebase timestamp to JS Date
         const jsDate = date.toDate ? date.toDate() : new Date(date);
         return jsDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     }
@@ -52,24 +48,28 @@ export default function MessagesPage() {
           <CardDescription>A combined feed of all your group discussions.</CardDescription>
         </CardHeader>
         <CardContent className="flex-grow overflow-y-auto space-y-4 p-4">
-            {loading && <p>Loading messages...</p>}
-            {error && <p>Error loading messages.</p>}
+            {loading && <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}
+            {error && <p className="text-destructive text-center">Error loading messages. A Firestore index is required. Please check the console.</p>}
             {!loading && messages.map(message => {
                 const isCurrentUser = message.senderId === authUser?.uid;
                 const member = allMembers.find(m => m.id === message.senderId);
                 const group = staticGroups.find(g => g.id === message.groupId);
+
+                const senderPhoto = isCurrentUser ? authUser?.photoURL : member?.avatarUrl;
+                const senderName = isCurrentUser ? authUser?.displayName : member?.name;
+                const senderFallback = (senderName?.charAt(0) || 'U').toUpperCase();
                 
                 return (
                 <div key={message.id} className={`flex items-end gap-2 ${isCurrentUser ? 'justify-end' : ''}`}>
                     {!isCurrentUser && (
                     <Avatar className="h-8 w-8">
-                        <AvatarImage src={member?.avatarUrl} />
-                        <AvatarFallback>{member?.name.charAt(0)}</AvatarFallback>
+                        <AvatarImage src={senderPhoto || undefined} />
+                        <AvatarFallback>{senderFallback}</AvatarFallback>
                     </Avatar>
                     )}
                     <div className={`max-w-md rounded-lg p-3 ${isCurrentUser ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
                     <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold">{member?.name || "Unknown User"}</p>
+                        <p className="text-sm font-semibold">{senderName || "Unknown User"}</p>
                         <p className="text-xs text-muted-foreground/80">in {group?.name || "Unknown Group"}</p>
                     </div>
                     <p className="text-sm mt-1">{message.text}</p>
@@ -77,8 +77,8 @@ export default function MessagesPage() {
                     </div>
                     {isCurrentUser && (
                     <Avatar className="h-8 w-8">
-                        <AvatarImage src={authUser?.photoURL || undefined} />
-                        <AvatarFallback>{authUser?.displayName?.charAt(0)}</AvatarFallback>
+                        <AvatarImage src={senderPhoto || undefined} />
+                        <AvatarFallback>{senderFallback}</AvatarFallback>
                     </Avatar>
                     )}
                 </div>
