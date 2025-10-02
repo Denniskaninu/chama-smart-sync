@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -11,7 +12,7 @@ import {
   FileText,
   TrendingUp,
   CreditCard,
-  User as UserProfileIcon,
+  UserProfileIcon,
 } from "lucide-react";
 
 import {
@@ -32,6 +33,7 @@ import { Logo } from "@/components/icons";
 import { useUser } from "@/firebase";
 import { useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FirebaseErrorListener } from "@/components/FirebaseErrorListener";
 
 function AppSidebar() {
   const pathname = usePathname();
@@ -147,6 +149,7 @@ export default function DashboardLayout({
           {children}
         </main>
       </SidebarInset>
+      <FirebaseErrorListener />
     </SidebarProvider>
   );
 }

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from "react";
@@ -34,16 +35,16 @@ import { Plus, ArrowRight, Paperclip, Send, ThumbsDown, ThumbsUp, Loader2 } from
 import Image from "next/image";
 import { Separator } from "../ui/separator";
 import { Input } from "../ui/input";
-import { useUser, useFirestore } from "@/firebase";
-import { useCollection } from "react-firebase-hooks/firestore";
-import { collection, query, orderBy, addDoc, serverTimestamp, where } from "firebase/firestore";
+import { useUser, useFirestore, useCollection } from "@/firebase";
+import { collection, query, orderBy, addDoc, serverTimestamp, setDoc, doc } from "firebase/firestore";
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 
 type GroupClientProps = {
   group: ChamaGroup;
   contributions: Contribution[];
   loans: Loan[];
-  // messages: Message[]; // Will be fetched from firestore
   receipts: Receipt[];
   currentUser: UserProfile;
 };
@@ -64,12 +65,7 @@ export function GroupClient({ group, contributions, loans, receipts, currentUser
     );
   }, [firestore, group.id]);
 
-  const [messagesSnapshot, loadingMessages, errorMessages] = useCollection(messagesQuery);
-
-  const messages = useMemo(() => {
-    if (!messagesSnapshot) return [];
-    return messagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
-  }, [messagesSnapshot]);
+  const { data: messages, loading: loadingMessages, error: errorMessages } = useCollection<Message>(messagesQuery);
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -84,18 +80,33 @@ export function GroupClient({ group, contributions, loans, receipts, currentUser
     if (!firestore || !authUser || !newMessage.trim()) return;
 
     setIsSending(true);
+    const messageData = {
+        groupId: group.id,
+        senderId: authUser.uid,
+        text: newMessage,
+        timestamp: serverTimestamp(),
+    };
+
     try {
         const messagesCol = collection(firestore, 'groups', group.id, 'messages');
-        await addDoc(messagesCol, {
-            groupId: group.id,
-            senderId: authUser.uid,
-            text: newMessage,
-            timestamp: serverTimestamp(),
-        });
+        const docRef = doc(messagesCol); // Create a new doc reference
+        
+        // Use setDoc instead of addDoc to get access to the .catch block
+        setDoc(docRef, messageData)
+            .catch(async (serverError) => {
+                const permissionError = new FirestorePermissionError({
+                    path: docRef.path,
+                    operation: 'create',
+                    requestResourceData: messageData,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            });
+
         setNewMessage("");
     } catch (error) {
+        // This catch block will likely not be hit for permission errors with the new structure,
+        // but it's good practice to keep it for other potential errors.
         console.error("Error sending message: ", error);
-        // Optionally show a toast notification for the error
     } finally {
         setIsSending(false);
     }
@@ -230,7 +241,7 @@ export function GroupClient({ group, contributions, loans, receipts, currentUser
             <CardContent className="flex-grow overflow-y-auto space-y-4 p-4">
               {loadingMessages && <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}
               {errorMessages && <p className="text-destructive text-center">Error loading messages. Check console for details.</p>}
-              {!loadingMessages && messages.map(message => {
+              {!loadingMessages && messages && messages.map(message => {
                 const isCurrentUser = message.senderId === authUser?.uid;
                 const member = group.members.find(m => m.id === message.senderId);
                 const senderPhoto = isCurrentUser ? authUser?.photoURL : member?.avatarUrl;

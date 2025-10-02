@@ -1,13 +1,13 @@
+
 "use client";
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Send, Paperclip, Loader2 } from "lucide-react";
-import { useUser, useFirestore } from "@/firebase";
-import { useCollection } from "react-firebase-hooks/firestore";
+import { useUser, useFirestore, useCollection } from "@/firebase";
 import { collectionGroup, query, orderBy } from "firebase/firestore";
 import type { Message } from "@/lib/types";
 import { groups as staticGroups } from "@/lib/placeholder-data"; 
@@ -21,12 +21,7 @@ export default function MessagesPage() {
         return query(collectionGroup(firestore, 'messages'), orderBy('timestamp', 'asc'));
     }, [firestore]);
 
-    const [messagesSnapshot, loading, error] = useCollection(messagesQuery);
-
-    const messages = useMemo(() => {
-        if (!messagesSnapshot) return [];
-        return messagesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
-    }, [messagesSnapshot]);
+    const { data: messages, loading, error } = useCollection<Message>(messagesQuery);
 
     const allMembers = useMemo(() => staticGroups.flatMap(g => g.members), []);
 
@@ -49,8 +44,8 @@ export default function MessagesPage() {
         </CardHeader>
         <CardContent className="flex-grow overflow-y-auto space-y-4 p-4">
             {loading && <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}
-            {error && <p className="text-destructive text-center">Error loading messages. A Firestore index is required. Please check the console.</p>}
-            {!loading && messages.map(message => {
+            {error && <p className="text-destructive text-center">Error loading messages. A Firestore index might be required.</p>}
+            {!loading && messages && messages.map(message => {
                 const isCurrentUser = message.senderId === authUser?.uid;
                 const member = allMembers.find(m => m.id === message.senderId);
                 const group = staticGroups.find(g => g.id === message.groupId);
