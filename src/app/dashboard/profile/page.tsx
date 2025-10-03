@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUser, useFirestore, useCollection } from "@/firebase";
 import { collection, query, where } from 'firebase/firestore';
-import { Edit, AtSign, Calendar, Landmark } from "lucide-react";
+import { Edit, AtSign, Calendar } from "lucide-react";
 import type { ChamaGroup, Contribution } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 
