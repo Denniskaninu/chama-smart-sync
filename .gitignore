@@ -33,6 +33,16 @@ yarn-error.log*
 # vercel
 .vercel
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# genkit
+.genkit/cache
+.genkit-ui-state.json
+
+# Firebase
+.firebase
+firebase.json
+database-debug.log
+firestore-debug.log
+storage-debug.log
+*.rules
+*.indexes.json
+*.emulators.export

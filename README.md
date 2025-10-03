@@ -6,8 +6,6 @@
 
 This project was built to showcase a full-stack application using a modern, scalable tech stack, perfect for a portfolio.
 
-**[Live Demo](https://your-deployment-link-here.com)** (Link to be added after deployment)
-
 ---
 
 ## ✨ Features
@@ -32,7 +30,7 @@ This project was built to showcase a full-stack application using a modern, scal
 - **Generative AI:** [Google AI & Genkit](https://firebase.google.com/docs/genkit) for M-Pesa reference validation.
 - **State Management:** React Hooks & Context API
 - **Form Handling:** [React Hook Form](https://react-hook-form.com/) & [Zod](https://zod.dev/) for validation
-- **Deployment:** Ready for [Netlify](https://www.netlify.com/)
+- **Deployment:** [Netlify](https://www.netlify.com/)
 
 ---
 
@@ -91,7 +89,7 @@ This project is configured for easy deployment to Netlify.
 
 1.  **Push your code to a Git repository** (e.g., GitHub, GitLab).
 2.  **Create a new site on Netlify** and connect it to your Git repository.
-3.  **Configure the build settings:**
+3.  **Configure the build settings:** Netlify will automatically detect that this is a Next.js project and configure the build settings for you. The `netlify.toml` file in this repository ensures the settings are correct.
     - **Build command:** `npm run build`
     - **Publish directory:** `.next`
 4.  **Add your environment variables** in the Netlify site settings (under "Site configuration" > "Build & deploy" > "Environment"). Add all the variables from your `.env.local` file.
