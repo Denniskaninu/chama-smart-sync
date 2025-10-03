@@ -46,7 +46,7 @@ import { Separator } from "../ui/separator";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { useUser, useFirestore, useCollection } from "@/firebase";
-import { collection, query, orderBy, where, addDoc, serverTimestamp, setDoc, doc, updateDoc, writeBatch } from "firebase/firestore";
+import { collection, query, orderBy, where, addDoc, serverTimestamp, setDoc, doc, updateDoc, writeBatch, runTransaction } from "firebase/firestore";
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useToast } from "@/hooks/use-toast";
@@ -59,6 +59,131 @@ type GroupClientProps = {
   initialLoans: Loan[];
   initialReceipts: Receipt[];
 };
+
+function MakeContributionDialog({ group, user }: { group: ChamaGroup; user: UserProfile }) {
+    const firestore = useFirestore();
+    const { toast } = useToast();
+    const [open, setOpen] = useState(false);
+    const [amount, setAmount] = useState("");
+    const [mpesaRef, setMpesaRef] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const handleContribution = async () => {
+        if (!firestore || !user || !amount || !mpesaRef || isNaN(parseInt(amount)) || parseInt(amount) <= 0) {
+            toast({
+                variant: "destructive",
+                title: "Invalid Input",
+                description: "Please fill in a valid amount and M-Pesa reference.",
+            });
+            return;
+        }
+        setLoading(true);
+
+        const groupRef = doc(firestore, "groups", group.id);
+        const contributionsCol = collection(firestore, "contributions");
+        
+        const contributionData = {
+            groupId: group.id,
+            memberId: user.id,
+            memberName: user.name,
+            amount: parseInt(amount),
+            ref: mpesaRef.toUpperCase(),
+            date: new Date().toISOString(),
+            createdAt: serverTimestamp(),
+        };
+
+        try {
+            await runTransaction(firestore, async (transaction) => {
+                const groupDoc = await transaction.get(groupRef);
+                if (!groupDoc.exists()) {
+                    throw new Error("Group does not exist!");
+                }
+                const newBalance = groupDoc.data().kittyBalance + parseInt(amount);
+                
+                transaction.update(groupRef, { kittyBalance: newBalance });
+                transaction.set(doc(contributionsCol), contributionData);
+            });
+
+            toast({
+                title: "Contribution Successful!",
+                description: `Your contribution of KSH ${parseInt(amount).toLocaleString()} has been recorded.`,
+            });
+            setOpen(false);
+            setAmount("");
+            setMpesaRef("");
+        } catch (error: any) {
+             const isPermissionError = error.code === 'permission-denied';
+             const permissionError = new FirestorePermissionError({
+                path: isPermissionError ? `groups/${group.id}` : 'contributions',
+                operation: 'update',
+                requestResourceData: { amount: parseInt(amount) },
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({
+                variant: "destructive",
+                title: "Contribution Failed",
+                description: error.message || "Could not record your contribution. Please check permissions.",
+            });
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button><Plus className="mr-2 h-4 w-4" />Make Contribution</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Make a Contribution</DialogTitle>
+                    <DialogDescription>
+                        Record your contribution to the group. Please ensure you have already sent the money.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="amount" className="text-right">
+                            Amount (KSH)
+                        </Label>
+                        <Input
+                            id="amount"
+                            type="number"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            className="col-span-3"
+                            placeholder="e.g., 5000"
+                        />
+                    </div>
+                     <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="mpesaRef" className="text-right">
+                            M-Pesa Ref
+                        </Label>
+                        <Input
+                            id="mpesaRef"
+                            value={mpesaRef}
+                            onChange={(e) => setMpesaRef(e.target.value)}
+                            className="col-span-3"
+                            placeholder="e.g., SFT8A7S1L0"
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button
+                        type="submit"
+                        onClick={handleContribution}
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : null}
+                        Record Contribution
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
 
 function RequestLoanDialog({ group, user }: { group: ChamaGroup, user: UserProfile }) {
     const firestore = useFirestore();
@@ -340,9 +465,12 @@ export function GroupClient({ group, initialContributions, initialLoans, initial
         
         <TabsContent value="contributions">
           <Card>
-            <CardHeader>
-              <CardTitle>Contributions</CardTitle>
-              <CardDescription>All member contributions are recorded here.</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Contributions</CardTitle>
+                <CardDescription>All member contributions are recorded here.</CardDescription>
+              </div>
+              {currentUserProfile && <MakeContributionDialog group={group} user={currentUserProfile} />}
             </CardHeader>
             <CardContent>
               <Table>
@@ -525,3 +653,5 @@ export function GroupClient({ group, initialContributions, initialLoans, initial
     </div>
   );
 }
+
+    

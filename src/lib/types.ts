@@ -28,8 +28,9 @@ export interface Contribution {
   memberId: string;
   memberName: string;
   amount: number;
-  date: Timestamp | string; // Can be a server timestamp or an ISO string
+  date: string; // Storing as ISO string now
   ref: string;
+  createdAt: Timestamp;
 }
 
 export interface Loan {
@@ -89,3 +90,5 @@ export interface Invoice {
     amount: number;
     status: 'Paid' | 'Pending' | 'Failed';
 }
+
+    
