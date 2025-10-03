@@ -3,8 +3,8 @@
     {
       "id": "login-hero",
       "description": "A group of people in a community meeting.",
-      "imageUrl": "https://images.unsplash.com/photo-1555069855-e580a9adbf43?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjb21tdW5pdHklMjBtZWV0aW5nfGVufDB8fHx8MTc1OTQyMDg2OXww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "community meeting"
+      "imageUrl": "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxidXNpbmVzcyUyMG1lZXRpbmd8ZW58MHx8fHwxNzU5NTA3NzM4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "business meeting"
     },
     {
       "id": "avatar-1",
