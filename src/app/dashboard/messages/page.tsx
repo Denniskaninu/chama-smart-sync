@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Send, Paperclip, Loader2, AlertTriangle, MessagesSquare } from "lucide-react";
 import { useUser, useFirestore, useCollection } from "@/firebase";
-import { collection, query, where, orderBy, getDocs, collectionGroup, Timestamp } from "firebase/firestore";
+import { collection, query, where, orderBy, getDocs, Timestamp, collectionGroup } from "firebase/firestore";
 import type { Message, ChamaGroup, UserProfile } from "@/lib/types";
 
 export default function MessagesPage() {
@@ -28,7 +28,15 @@ export default function MessagesPage() {
     }, [authUser, allGroups]);
     
     useEffect(() => {
-        if (loadingUser || loadingAllGroups || !userGroups || !firestore) return;
+        if (loadingUser || loadingAllGroups || !userGroups || !firestore) {
+            // If we are still loading primary data, don't start fetching messages.
+            if(!loadingUser && !loadingAllGroups) {
+                // This case handles when a user is in no groups.
+                setLoadingMessages(false);
+                setAllMessages([]);
+            }
+            return;
+        }
 
         setLoadingMessages(true);
         
@@ -40,24 +48,24 @@ export default function MessagesPage() {
             }
 
             try {
-                const groupIds = userGroups.map(g => g.id);
-                // The 'in' query is limited to 30 items. If a user is in more than 30 groups, this will fail.
-                // A more scalable solution for that many groups would involve a different data model or fetching messages per group.
-                // For this app's scale, this is acceptable.
-                if (groupIds.length > 30) {
-                     throw new Error("Query limit exceeded: Cannot fetch messages for more than 30 groups at once.");
-                }
+                // Create an array of promises, one for each group's message query
+                const messagePromises = userGroups.map(group => {
+                    const messagesQuery = query(
+                        collection(firestore, 'groups', group.id, 'messages'),
+                        orderBy('timestamp', 'desc')
+                    );
+                    return getDocs(messagesQuery);
+                });
 
-                const messagesQuery = query(
-                    collectionGroup(firestore, 'messages'), 
-                    where('groupId', 'in', groupIds),
-                    orderBy('timestamp', 'desc') // We need an index for this
+                // Wait for all message queries to complete
+                const snapshots = await Promise.all(messagePromises);
+
+                // Flatten all the messages from all groups into a single array
+                const fetchedMessages = snapshots.flatMap(snapshot => 
+                    snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message))
                 );
-
-                const snapshot = await getDocs(messagesQuery);
-                const fetchedMessages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
                 
-                 // Sort messages chronologically ascending on the client
+                // Sort messages chronologically ascending on the client
                 fetchedMessages.sort((a, b) => {
                     const dateA = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
                     const dateB = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0;
@@ -129,7 +137,7 @@ export default function MessagesPage() {
                     <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
                     <h3 className="text-xl font-semibold text-destructive">Error Loading Messages</h3>
                     <p className="text-muted-foreground mt-2 max-w-md">
-                        There was a problem fetching the messages. This could be due to a Firestore security rule or a missing index.
+                        There was a problem fetching the messages. Please try refreshing the page.
                     </p>
                     <p className="text-xs text-muted-foreground mt-4 p-2 bg-muted rounded-md max-w-md">
                         <strong>Error:</strong> {error.message}
@@ -196,5 +204,3 @@ export default function MessagesPage() {
     </div>
   );
 }
-
-    
