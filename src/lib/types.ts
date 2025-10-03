@@ -7,8 +7,8 @@ export interface UserProfile {
   name: string;
   email: string;
   avatarUrl?: string;
-  groups: string[];
-  role: UserRole;
+  groups?: string[];
+  role?: UserRole;
 }
 
 export interface ChamaGroup {
@@ -16,7 +16,7 @@ export interface ChamaGroup {
   name: string;
   description: string;
   createdBy: string;
-  members: UserProfile[]; // Storing full member profiles for simplicity
+  members: Pick<UserProfile, 'id' | 'name' | 'avatarUrl'>[]; // Storing partial member profiles for simplicity
   kittyBalance: number;
   merryGoRoundIndex: number;
 }
