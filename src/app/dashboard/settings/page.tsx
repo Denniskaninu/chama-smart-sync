@@ -1,5 +1,7 @@
+
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -10,12 +12,44 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useUser } from "@/firebase";
+import { useUser, useAuth } from "@/firebase";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { updateProfile } from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 export default function SettingsPage() {
   const { user } = useUser();
+  const auth = useAuth();
+  const { toast } = useToast();
+  
+  const [displayName, setDisplayName] = useState(user?.displayName || "");
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleUpdateProfile = async () => {
+    if (!user || !auth || !displayName || displayName === user.displayName) {
+        return;
+    }
+    
+    setIsSaving(true);
+    try {
+        await updateProfile(user, { displayName });
+        toast({
+            title: "Profile Updated",
+            description: "Your display name has been successfully updated.",
+        });
+    } catch (error: any) {
+        toast({
+            variant: "destructive",
+            title: "Update Failed",
+            description: error.message || "Could not update your profile.",
+        });
+    } finally {
+        setIsSaving(false);
+    }
+  };
+
 
   if (!user) return null;
 
@@ -38,13 +72,16 @@ export default function SettingsPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Name</Label>
-            <Input id="name" defaultValue={user.displayName || ""} />
+            <Input id="name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input id="email" type="email" defaultValue={user.email || ""} disabled />
           </div>
-          <Button>Update Profile</Button>
+          <Button onClick={handleUpdateProfile} disabled={isSaving || displayName === user.displayName}>
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Update Profile
+          </Button>
         </CardContent>
       </Card>
 
