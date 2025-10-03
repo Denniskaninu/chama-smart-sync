@@ -88,19 +88,6 @@ Follow these instructions to get a copy of the project up and running on your lo
 
 ---
 
-## 部署到 Netlify
-
-This project is pre-configured for easy deployment to Netlify.
-
-1.  **Push your code to a Git repository** (e.g., GitHub, GitLab).
-2.  **Create a new site on Netlify** and connect it to your Git repository.
-3.  **Configure the build settings:** Netlify will automatically detect that this is a Next.js project and configure the build settings for you. The `netlify.toml` file in this repository ensures these settings are correct.
-    -   **Build command:** `npm run build`
-    -   **Publish directory:** `.next`
-4.  **Add your environment variables** in the Netlify site settings (under "Site configuration" > "Build & deploy" > "Environment"). Add all the variables from your `.env.local` file.
-5.  **Deploy!** Netlify will automatically build and deploy your site.
-
----
 
 ## 📄 License
 
