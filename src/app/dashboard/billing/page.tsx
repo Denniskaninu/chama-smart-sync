@@ -1,7 +1,7 @@
 
 "use client";
 
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,18 +14,57 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, CreditCard, Download, Plus, Check } from "lucide-react";
+import { CheckCircle, CreditCard, Download, Plus, Check, Loader2 } from "lucide-react";
 import { useUser } from "@/firebase";
-import { subscriptions, paymentMethods, invoices } from "@/lib/placeholder-data";
-import type { SubscriptionPlan } from "@/lib/types";
+import { subscriptions as allPlans, paymentMethods as initialPaymentMethods, invoices as initialInvoices } from "@/lib/placeholder-data";
+import type { SubscriptionPlan, PaymentMethod, Invoice } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
 
 export default function BillingPage() {
     const { user } = useUser();
-    const currentPlan = subscriptions.find(sub => sub.status === 'active');
-    const freePlan = subscriptions.find(sub => sub.planId === 'free');
-    const proPlan = subscriptions.find(sub => sub.planId === 'pro');
+    const { toast } = useToast();
+    
+    // Simulate fetching and managing state for billing data
+    const [currentPlanId, setCurrentPlanId] = useState('free');
+    const [isLoading, setIsLoading] = useState<string | null>(null);
 
-    if (!user || !currentPlan || !freePlan || !proPlan) return null;
+    const currentPlan = useMemo(() => {
+        const plan = allPlans.find(sub => sub.planId === currentPlanId);
+        // Let's create a dynamic usage for the active plan
+        if (plan) {
+            return {
+                ...plan,
+                status: 'active',
+                usage: {
+                    groupsUsed: 2,
+                    groupsLimit: plan.planId === 'pro' ? 1000 : 3,
+                }
+            } as SubscriptionPlan
+        }
+        return allPlans.find(sub => sub.planId === 'free') as SubscriptionPlan;
+    }, [currentPlanId]);
+
+    const otherPlans = allPlans.filter(p => p.planId !== 'free');
+    const freePlan = allPlans.find(p => p.planId === 'free') as SubscriptionPlan;
+    
+    const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>(initialPaymentMethods);
+    const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
+
+
+    const handlePlanChange = (planId: string) => {
+        setIsLoading(planId);
+        // Simulate an API call
+        setTimeout(() => {
+            setCurrentPlanId(planId);
+            setIsLoading(null);
+            toast({
+                title: "Subscription Updated!",
+                description: `You are now on the ${allPlans.find(p => p.planId === planId)?.name}.`
+            })
+        }, 1500);
+    }
+
+    if (!user) return null;
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
@@ -49,16 +88,16 @@ export default function BillingPage() {
                         <p><span className="text-4xl font-bold">${currentPlan.price}</span>/month</p>
                     </div>
                     <div className="space-y-2">
-                        <p className="text-sm text-muted-foreground">Group usage: {currentPlan.usage.groupsUsed} of {currentPlan.usage.groupsLimit} groups</p>
-                        <Progress value={(currentPlan.usage.groupsUsed / currentPlan.usage.groupsLimit) * 100} />
+                        <p className="text-sm text-muted-foreground">Group usage: {currentPlan.usage.groupsUsed} of {currentPlan.usage.groupsLimit === 1000 ? 'Unlimited' : currentPlan.usage.groupsLimit} groups</p>
+                        <Progress value={(currentPlan.usage.groupsUsed / (currentPlan.usage.groupsLimit === 1000 ? currentPlan.usage.groupsUsed : currentPlan.usage.groupsLimit)) * 100} />
                     </div>
                 </div>
                 </CardContent>
             </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {[freePlan, proPlan].map((plan: SubscriptionPlan) => (
-                    <Card key={plan.planId} className={`flex flex-col ${currentPlan.planId === plan.planId ? 'border-primary' : ''}`}>
+                {[freePlan, ...otherPlans].map((plan: SubscriptionPlan) => (
+                    <Card key={plan.planId} className={`flex flex-col ${currentPlan.planId === plan.planId ? 'border-primary ring-2 ring-primary' : ''}`}>
                         <CardHeader>
                             <CardTitle>{plan.name}</CardTitle>
                             <CardDescription>{plan.description}</CardDescription>
@@ -75,8 +114,14 @@ export default function BillingPage() {
                             </ul>
                         </CardContent>
                         <CardFooter>
-                            <Button className="w-full" disabled={currentPlan.planId === plan.planId}>
-                                {currentPlan.planId === plan.planId ? 'Current Plan' : 'Upgrade'}
+                            <Button 
+                                className="w-full" 
+                                disabled={currentPlan.planId === plan.planId || isLoading === plan.planId}
+                                onClick={() => handlePlanChange(plan.planId)}
+                            >
+                                {isLoading === plan.planId ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : currentPlan.planId === plan.planId ? 'Current Plan' : (currentPlan.price > plan.price ? 'Downgrade' : 'Upgrade')}
                             </Button>
                         </CardFooter>
                     </Card>
@@ -90,7 +135,7 @@ export default function BillingPage() {
                         <CardTitle>Payment Methods</CardTitle>
                         <CardDescription>Manage your saved payment methods.</CardDescription>
                     </div>
-                     <Button variant="outline"><Plus className="mr-2 h-4 w-4" /> Add Method</Button>
+                     <Button variant="outline" onClick={() => toast({ title: "Coming Soon!", description: "Adding new payment methods will be available in a future update."})}><Plus className="mr-2 h-4 w-4" /> Add Method</Button>
                 </CardHeader>
                 <CardContent>
                     {paymentMethods.map(method => (
@@ -145,3 +190,5 @@ export default function BillingPage() {
     </div>
   );
 }
+
+    

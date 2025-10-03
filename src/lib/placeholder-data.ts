@@ -82,18 +82,13 @@ export const loansChartData = [
   ];
 
 // Data for Billing Page
-export const subscriptions: SubscriptionPlan[] = [
+export const subscriptions: Omit<SubscriptionPlan, 'status' | 'usage'>[] = [
     {
         planId: 'free',
         name: 'Free Plan',
         description: 'For individuals and small groups just getting started.',
         price: 0,
         features: ['Up to 3 Groups', 'Basic Reporting', 'Community Support'],
-        status: 'inactive',
-        usage: {
-            groupsUsed: 0,
-            groupsLimit: 0,
-        }
     },
     {
         planId: 'pro',
@@ -101,24 +96,7 @@ export const subscriptions: SubscriptionPlan[] = [
         description: 'For larger groups and chamas that need more power.',
         price: 15,
         features: ['Unlimited Groups', 'Advanced Reporting', 'Priority Support', 'Loan Management'],
-        status: 'inactive',
-        usage: {
-            groupsUsed: 0,
-            groupsLimit: 0,
-        }
     },
-    {
-        planId: 'free',
-        name: 'Free Plan',
-        description: 'For individuals and small groups just getting started.',
-        price: 0,
-        features: ['Up to 3 Groups', 'Basic Reporting', 'Community Support'],
-        status: 'active',
-        usage: {
-            groupsUsed: 2,
-            groupsLimit: 3,
-        }
-    }
 ];
 
 export const paymentMethods: PaymentMethod[] = [
@@ -136,3 +114,5 @@ export const invoices: Invoice[] = [
     { id: "INV002", date: "May 2024", amount: 5.00, status: "Paid" },
     { id: "INV003", date: "April 2024", amount: 5.00, status: "Paid" },
 ];
+
+    
