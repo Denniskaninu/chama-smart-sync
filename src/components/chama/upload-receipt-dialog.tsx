@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -16,9 +17,20 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useUser } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { Loader2, Plus, Upload } from 'lucide-react';
+import { Loader2, Upload } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import Image from 'next/image';
+
+const fileToDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+};
+
 
 export function UploadReceiptDialog({ groupId, children }: { groupId: string; children: React.ReactNode }) {
   const { user } = useUser();
@@ -26,16 +38,23 @@ export function UploadReceiptDialog({ groupId, children }: { groupId: string; ch
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFile(e.target.files[0]);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+      const dataUrl = await fileToDataUrl(selectedFile);
+      setPreview(dataUrl);
+    } else {
+        setFile(null);
+        setPreview(null);
     }
   };
 
   const handleUpload = async () => {
-    if (!firestore || !user || !file) {
+    if (!firestore || !user || !file || !preview) {
       toast({
         variant: 'destructive',
         title: 'Missing Information',
@@ -45,13 +64,9 @@ export function UploadReceiptDialog({ groupId, children }: { groupId: string; ch
     }
     setLoading(true);
 
-    // In a real app, you would upload the file to Firebase Storage here.
-    // For now, we'll use a placeholder URL and create the Firestore record.
-    const placeholderUrl = `https://picsum.photos/seed/${Math.random()}/400/600`;
-
     const receiptData = {
       groupId: groupId,
-      url: placeholderUrl,
+      url: preview, // Store the data URL directly
       uploadedBy: user.uid,
       timestamp: new Date().toISOString(),
       fileName: file.name,
@@ -67,6 +82,7 @@ export function UploadReceiptDialog({ groupId, children }: { groupId: string; ch
         });
         setOpen(false);
         setFile(null);
+        setPreview(null);
       })
       .catch((serverError) => {
         const permissionError = new FirestorePermissionError({
@@ -100,7 +116,11 @@ export function UploadReceiptDialog({ groupId, children }: { groupId: string; ch
           <div className="grid w-full max-w-sm items-center gap-1.5">
             <Label htmlFor="picture">Receipt Image</Label>
             <Input id="picture" type="file" onChange={handleFileChange} accept="image/*" />
-             {file && <p className="text-sm text-muted-foreground mt-2">Selected: {file.name}</p>}
+             {preview && (
+                <div className="mt-4 relative w-full aspect-[2/3] rounded-md overflow-hidden border">
+                    <Image src={preview} alt="Receipt preview" fill objectFit="contain" />
+                </div>
+             )}
           </div>
         </div>
         <DialogFooter>

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Send, Paperclip, Loader2, AlertTriangle, MessagesSquare } from "lucide-react";
 import { useUser, useFirestore, useCollection } from "@/firebase";
-import { collection, query, where, orderBy, getDocs, Timestamp, collectionGroup } from "firebase/firestore";
+import { collection, query, orderBy, getDocs, Timestamp } from "firebase/firestore";
 import type { Message, ChamaGroup, UserProfile } from "@/lib/types";
 
 export default function MessagesPage() {
@@ -29,9 +29,7 @@ export default function MessagesPage() {
     
     useEffect(() => {
         if (loadingUser || loadingAllGroups || !userGroups || !firestore) {
-            // If we are still loading primary data, don't start fetching messages.
             if(!loadingUser && !loadingAllGroups) {
-                // This case handles when a user is in no groups.
                 setLoadingMessages(false);
                 setAllMessages([]);
             }
@@ -48,7 +46,6 @@ export default function MessagesPage() {
             }
 
             try {
-                // Create an array of promises, one for each group's message query
                 const messagePromises = userGroups.map(group => {
                     const messagesQuery = query(
                         collection(firestore, 'groups', group.id, 'messages'),
@@ -57,15 +54,12 @@ export default function MessagesPage() {
                     return getDocs(messagesQuery);
                 });
 
-                // Wait for all message queries to complete
                 const snapshots = await Promise.all(messagePromises);
 
-                // Flatten all the messages from all groups into a single array
                 const fetchedMessages = snapshots.flatMap(snapshot => 
                     snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message))
                 );
                 
-                // Sort messages chronologically ascending on the client
                 fetchedMessages.sort((a, b) => {
                     const dateA = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
                     const dateB = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0;

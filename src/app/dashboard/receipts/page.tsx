@@ -28,10 +28,17 @@ export default function ReceiptsPage() {
 
     const userGroupsQuery = useMemo(() => {
         if (!firestore || !user) return null;
-        return query(collection(firestore, "groups"), where('members', 'array-contains', { id: user.uid, name: user.displayName, avatarUrl: user.photoURL }));
+        // This is a more robust way to query for groups the user is in.
+        // It fetches all groups and we filter client-side.
+        return collection(firestore, "groups");
     }, [firestore, user]);
 
-    const { data: userGroups, loading: loadingUserGroups } = useCollection<ChamaGroup>(userGroupsQuery);
+    const { data: allUserGroups, loading: loadingUserGroups } = useCollection<ChamaGroup>(userGroupsQuery);
+    
+    const userGroups = useMemo(() => {
+        if (!allUserGroups || !user) return [];
+        return allUserGroups.filter(g => g.members.some(m => m.id === user.uid));
+    }, [allUserGroups, user]);
 
     const receiptsQuery = useMemo(() => {
         if (!firestore) return null;
