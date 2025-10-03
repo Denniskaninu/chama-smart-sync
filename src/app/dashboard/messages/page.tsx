@@ -12,34 +12,31 @@ import { collection, query, where, orderBy, getDocs, collectionGroup } from "fir
 import type { Message, ChamaGroup, UserProfile } from "@/lib/types";
 
 export default function MessagesPage() {
-    const { user: authUser } = useUser();
+    const { user: authUser, loading: loadingUser } = useUser();
     const firestore = useFirestore();
     const [allMessages, setAllMessages] = useState<Message[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loadingMessages, setLoadingMessages] = useState(true);
     const [error, setError] = useState<Error | null>(null);
-
-    // 1. Get the groups the user is a member of
-    const userGroupsQuery = useMemo(() => {
-        if (!firestore || !authUser) return null;
-        return query(collection(firestore, 'groups'), where('members', 'array-contains', { id: authUser.uid, name: authUser.displayName, avatarUrl: authUser.photoURL }));
-    }, [firestore, authUser]);
-    const { data: userGroups, loading: loadingGroups, error: errorGroups } = useCollection<ChamaGroup>(userGroupsQuery);
 
     const { data: allGroups, loading: loadingAllGroups } = useCollection<ChamaGroup>(
         useMemo(() => firestore ? collection(firestore, 'groups') : null, [firestore])
     );
-    
-    // 2. Fetch messages for each group once we have the groups
-    useEffect(() => {
-        if (loadingGroups || !userGroups || !firestore) return;
 
-        setLoading(true);
+    const userGroups = useMemo(() => {
+        if (!authUser || !allGroups) return [];
+        return allGroups.filter(g => g.members.some(m => m.id === authUser.uid));
+    }, [authUser, allGroups]);
+    
+    useEffect(() => {
+        if (loadingUser || loadingAllGroups || !userGroups || !firestore) return;
+
+        setLoadingMessages(true);
         
         const fetchAllMessages = async () => {
             try {
                 if (userGroups.length === 0) {
                     setAllMessages([]);
-                    setLoading(false);
+                    setLoadingMessages(false);
                     return;
                 }
 
@@ -62,17 +59,18 @@ export default function MessagesPage() {
                 });
                 
                 setAllMessages(fetchedMessages);
+                setError(null);
             } catch (err: any) {
                 console.error("Error fetching all messages:", err);
                 setError(err);
             } finally {
-                setLoading(false);
+                setLoadingMessages(false);
             }
         };
 
         fetchAllMessages();
 
-    }, [userGroups, loadingGroups, firestore]);
+    }, [userGroups, loadingUser, loadingAllGroups, firestore]);
 
     const allMembers = useMemo(() => {
         if (!allGroups) return [];
@@ -103,6 +101,8 @@ export default function MessagesPage() {
         const jsDate = date.toDate ? date.toDate() : new Date(date);
         return jsDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + ', ' + jsDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
     }
+    
+    const loading = loadingUser || loadingAllGroups || loadingMessages;
 
   return (
     <div className="space-y-8">
@@ -116,14 +116,14 @@ export default function MessagesPage() {
           <CardDescription>A combined feed of all your group discussions.</CardDescription>
         </CardHeader>
         <CardContent className="flex-grow overflow-y-auto space-y-4 p-4">
-            {(loading || loadingAllGroups) && <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}
+            {loading && <div className="flex justify-center items-center h-full"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>}
             
             {error && (
                  <div className="flex flex-col items-center justify-center h-full text-center">
                     <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
                     <h3 className="text-xl font-semibold text-destructive">Error Loading Messages</h3>
                     <p className="text-muted-foreground mt-2 max-w-md">
-                        There was a problem fetching the messages. This could be due to a Firestore security rule or a network issue.
+                        There was a problem fetching the messages. This could be due to a Firestore security rule or a missing index.
                     </p>
                     <p className="text-xs text-muted-foreground mt-4 p-2 bg-muted rounded-md max-w-md">
                         <strong>Error:</strong> {error.message}
