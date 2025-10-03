@@ -46,13 +46,13 @@ export default function ProfilePage() {
             <Card>
                 <CardContent className="pt-6">
                      <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6">
-                          <Skeleton className="h-32 w-32 rounded-full" />
+                          <Skeleton className="h-24 w-24 sm:h-32 sm:w-32 rounded-full" />
                           <div className="text-center sm:text-left flex-1 space-y-2">
-                              <Skeleton className="h-8 w-48" />
-                              <Skeleton className="h-5 w-64" />
-                              <Skeleton className="h-5 w-56" />
+                              <Skeleton className="h-8 w-48 mx-auto sm:mx-0" />
+                              <Skeleton className="h-5 w-64 mx-auto sm:mx-0" />
+                              <Skeleton className="h-5 w-56 mx-auto sm:mx-0" />
                           </div>
-                          <div className="text-center sm:text-right space-y-1">
+                          <div className="text-center sm:text-right space-y-1 pt-4 sm:pt-0">
                               <Skeleton className="h-5 w-24 ml-auto" />
                               <Skeleton className="h-8 w-32 ml-auto" />
                           </div>
@@ -80,7 +80,7 @@ export default function ProfilePage() {
         <CardContent className="pt-6">
           <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6">
             <div className="relative">
-              <Avatar className="h-32 w-32 border-4 border-primary/50">
+              <Avatar className="h-24 w-24 sm:h-32 sm:w-32 border-4 border-primary/50">
                 <AvatarImage src={user.photoURL || undefined} alt={user.displayName || ""} />
                 <AvatarFallback className="text-4xl">{user.displayName ? user.displayName.charAt(0) : user.email?.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
@@ -97,7 +97,7 @@ export default function ProfilePage() {
                 <Calendar className="h-4 w-4" /> Joined on {user.metadata.creationTime ? new Date(user.metadata.creationTime).toLocaleDateString() : 'N/A'}
               </p>
             </div>
-            <div className="text-center sm:text-right">
+            <div className="text-center sm:text-right pt-4 sm:pt-0">
               <p className="text-sm text-muted-foreground">Total Contributed</p>
               <p className="text-3xl font-bold text-primary">KSH {totalContributed.toLocaleString()}</p>
             </div>
@@ -130,3 +130,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    

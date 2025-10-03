@@ -145,7 +145,7 @@ export default function AuthenticationPage() {
 
   return (
     <div className="w-full min-h-screen lg:grid lg:grid-cols-2">
-      <div className="flex items-center justify-center p-6 sm:p-12">
+      <div className="flex items-center justify-center p-6 py-12 sm:p-12">
         <div className="mx-auto w-full max-w-md space-y-8">
           <div className="flex flex-col items-center text-center">
             <Link href="/" className="flex items-center gap-2 mb-4">
@@ -310,3 +310,5 @@ export default function AuthenticationPage() {
     </div>
   );
 }
+
+    

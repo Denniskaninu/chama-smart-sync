@@ -145,7 +145,7 @@ export default function DashboardLayout({
           <SidebarTrigger className="md:hidden mr-auto" />
           <UserNav />
         </header>
-        <main className="flex-1 p-4 sm:p-6">
+        <main className="flex-1 p-4 md:p-6 lg:p-8">
           {children}
         </main>
       </SidebarInset>
@@ -153,3 +153,5 @@ export default function DashboardLayout({
     </SidebarProvider>
   );
 }
+
+    

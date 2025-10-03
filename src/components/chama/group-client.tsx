@@ -51,6 +51,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useToast } from "@/hooks/use-toast";
 import { UploadReceiptDialog } from "./upload-receipt-dialog";
+import { ScrollArea, ScrollBar } from "../ui/scroll-area";
 
 
 type GroupClientProps = {
@@ -454,18 +455,21 @@ export function GroupClient({ group, initialContributions, initialLoans, initial
     <div className="space-y-6">
       <GroupHeader group={group} />
       <Tabs defaultValue="contributions" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-6">
-          <TabsTrigger value="contributions">Contributions</TabsTrigger>
-          <TabsTrigger value="merry-go-round">Merry-Go-Round</TabsTrigger>
-          <TabsTrigger value="loans">Loans</TabsTrigger>
-          <TabsTrigger value="reports">Reports</TabsTrigger>
-          <TabsTrigger value="messages">Messages</TabsTrigger>
-          <TabsTrigger value="receipts">Receipts</TabsTrigger>
-        </TabsList>
+        <ScrollArea className="w-full whitespace-nowrap">
+            <TabsList className="grid-flow-col">
+              <TabsTrigger value="contributions">Contributions</TabsTrigger>
+              <TabsTrigger value="merry-go-round">Merry-Go-Round</TabsTrigger>
+              <TabsTrigger value="loans">Loans</TabsTrigger>
+              <TabsTrigger value="reports">Reports</TabsTrigger>
+              <TabsTrigger value="messages">Messages</TabsTrigger>
+              <TabsTrigger value="receipts">Receipts</TabsTrigger>
+            </TabsList>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
         
-        <TabsContent value="contributions">
+        <TabsContent value="contributions" className="mt-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
                 <CardTitle>Contributions</CardTitle>
                 <CardDescription>All member contributions are recorded here.</CardDescription>
@@ -499,7 +503,7 @@ export function GroupClient({ group, initialContributions, initialLoans, initial
           </Card>
         </TabsContent>
 
-        <TabsContent value="merry-go-round">
+        <TabsContent value="merry-go-round" className="mt-4">
           <Card>
             <CardHeader>
               <CardTitle>Merry-Go-Round</CardTitle>
@@ -520,7 +524,7 @@ export function GroupClient({ group, initialContributions, initialLoans, initial
           </Card>
         </TabsContent>
 
-        <TabsContent value="loans">
+        <TabsContent value="loans" className="mt-4">
           <Card>
             <CardHeader>
               <CardTitle>Loan Requests</CardTitle>
@@ -541,9 +545,9 @@ export function GroupClient({ group, initialContributions, initialLoans, initial
                       <Badge variant={loan.status === 'approved' ? 'default' : loan.status === 'rejected' ? 'destructive' : 'secondary'}>{loan.status}</Badge>
                     </div>
                     {loan.status === 'pending' && (
-                       <div className="flex items-center justify-between pt-2 border-t">
+                       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-2 border-t gap-4">
                          <p className="text-sm text-muted-foreground flex items-center gap-2"><Vote className="h-4 w-4" /> Vote now:</p>
-                         <div className="flex gap-2">
+                         <div className="flex gap-2 shrink-0">
                           <Button variant="outline" size="sm" onClick={() => handleLoanVote(loan.id, 'approved')}><ThumbsUp className="h-4 w-4 mr-2 text-green-500" />Approve</Button>
                           <Button variant="outline" size="sm" onClick={() => handleLoanVote(loan.id, 'rejected')}><ThumbsDown className="h-4 w-4 mr-2 text-red-500" />Reject</Button>
                          </div>
@@ -556,14 +560,14 @@ export function GroupClient({ group, initialContributions, initialLoans, initial
           </Card>
         </TabsContent>
         
-        <TabsContent value="reports">
+        <TabsContent value="reports" className="mt-4">
           <div className="grid gap-6 md:grid-cols-2">
             <ContributionsLineChart data={contributionsChartData} />
             <LoansPieChart data={loansChartData} />
           </div>
         </TabsContent>
         
-        <TabsContent value="messages">
+        <TabsContent value="messages" className="mt-4">
           <Card className="flex flex-col h-[60vh]">
             <CardHeader>
               <CardTitle>Community Wall</CardTitle>
@@ -587,7 +591,7 @@ export function GroupClient({ group, initialContributions, initialLoans, initial
                         <AvatarFallback>{senderFallback}</AvatarFallback>
                       </Avatar>
                     )}
-                    <div className={`max-w-xs rounded-lg p-3 ${isCurrentUser ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                    <div className={`max-w-xs md:max-w-md rounded-lg p-3 ${isCurrentUser ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
                       {!isCurrentUser && <p className="text-sm font-semibold mb-1">{senderName}</p>}
                       <p className="text-sm">{message.text}</p>
                       <p className={`text-xs mt-1 text-right ${isCurrentUser ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{formatDate(message.timestamp)}</p>
@@ -624,7 +628,7 @@ export function GroupClient({ group, initialContributions, initialLoans, initial
           </Card>
         </TabsContent>
 
-        <TabsContent value="receipts">
+        <TabsContent value="receipts" className="mt-4">
           <Card>
             <CardHeader>
               <CardTitle>Receipts & Proof</CardTitle>

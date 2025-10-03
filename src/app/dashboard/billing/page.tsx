@@ -69,23 +69,23 @@ export default function BillingPage() {
     const formatCurrency = (amount: number) => `KSH ${amount.toLocaleString()}`;
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
+    <div className="space-y-8 max-w-5xl mx-auto">
       <div>
         <h1 className="text-3xl font-bold font-headline">Billing</h1>
         <p className="text-muted-foreground">
           Manage your subscription and payment methods.
         </p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
-        <div className="md:col-span-2 space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <div className="lg:col-span-2 space-y-8">
             <Card>
                 <CardHeader>
                 <CardTitle>Current Plan</CardTitle>
                 <CardDescription>You are currently on the <span className="font-semibold text-primary">{currentPlan.name}</span>.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                <div className="p-6 bg-muted rounded-lg space-y-4">
-                    <div className="flex justify-between items-baseline">
+                <div className="p-4 sm:p-6 bg-muted rounded-lg space-y-4">
+                    <div className="flex flex-col sm:flex-row justify-between sm:items-baseline gap-2">
                         <h3 className="text-2xl font-bold font-headline">{currentPlan.name}</h3>
                         <p><span className="text-4xl font-bold">{formatCurrency(currentPlan.price)}</span>/month</p>
                     </div>
@@ -97,7 +97,7 @@ export default function BillingPage() {
                 </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {[freePlan, ...otherPlans].map((plan: SubscriptionPlan) => (
                     <Card key={plan.planId} className={`flex flex-col ${currentPlan.planId === plan.planId ? 'border-primary ring-2 ring-primary' : ''}`}>
                         <CardHeader>
@@ -132,7 +132,7 @@ export default function BillingPage() {
 
 
              <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <div>
                         <CardTitle>Payment Methods</CardTitle>
                         <CardDescription>Manage your saved payment methods.</CardDescription>
@@ -192,5 +192,7 @@ export default function BillingPage() {
     </div>
   );
 }
+
+    
 
     
