@@ -1,3 +1,4 @@
+
 import type {NextConfig} from 'next';
 
 require('dotenv').config({ path: './.env' });
@@ -33,6 +34,12 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'firebasestorage.googleapis.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.standardmedia.co.ke',
         port: '',
         pathname: '/**',
       }
