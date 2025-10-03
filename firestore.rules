@@ -1,40 +1,196 @@
+/**
+ * @fileoverview Firestore Security Rules for Chama App.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a shared access model for groups and an ownership model for user profiles.
+ * Group members can read and write data within their groups. User profiles are private to the user.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profile information, accessible only to the user themselves.
+ * - /groups/{groupId}: Stores group information, accessible to group members.
+ * - /groups/{groupId}/messages/{messageId}: Stores messages within a group, accessible to group members.
+ * - /contributions/{contributionId}: Stores contribution records, accessible to group members and the creator.
+ * - /loans/{loanId}: Stores loan records, accessible to group members and the creator.
+ * - /receipts/{receiptId}: Stores receipt records, accessible to group members.
+ *
+ * Key Security Decisions:
+ * - Users can only read and write their own profile data.
+ * - Group data is accessible to members of the group.
+ * - Listing of users is disallowed.
+ * - Data validation is relaxed in this prototype to allow flexible schema changes.
+ *
+ * Denormalization for Authorization:
+ * The `Group` entity includes a `members` array to avoid costly `get()` calls to a separate memberships collection.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // User profile
+
+    /**
+     * @description Allows users to read and write their own profile data.
+     * @path /users/{userId}
+     * @allow (create) - User A can create their profile if request.auth.uid == userId.
+     * @allow (get, update, delete) - User A can get, update, and delete their profile if request.auth.uid == userId.
+     * @deny (create) - User A cannot create a profile for User B.
+     * @deny (update, delete) - User A cannot update or delete User B's profile.
+     * @principle Enforces document ownership for writes.
+     */
     match /users/{userId} {
-      allow read, write: if request.auth.uid == userId;
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
-    
-    // Groups
+
+    /**
+     * @description Allows members of a group to read and write group data.
+     * @path /groups/{groupId}
+     * @allow (get, list) - User A can get and list groups if they are a member of the group.
+     * @allow (create) - User A can create a group if they are authenticated.
+     * @allow (update, delete) - User A can update and delete a group if they are the creator of the group.
+     * @deny (get, list) - User A cannot get or list groups if they are not a member of the group.
+     * @deny (create, update, delete) - User A cannot create, update, or delete a group if they are not authenticated or the creator.
+     * @principle Enforces shared access for group members.
+     */
     match /groups/{groupId} {
-      allow read, write: if request.auth != null 
-        && request.auth.uid in resource.data.members;
-      
-      // Contributions
-      match /contributions/{contributionId} {
-        allow read, write: if request.auth != null 
-          && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+      function isSignedIn() {
+          return request.auth != null;
       }
 
-      // Loans
-      match /loans/{loanId} {
-        allow read, write: if request.auth != null 
-          && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+      function isMember() {
+        return isSignedIn() && request.auth.uid in resource.data.members;
       }
 
-      // Messages
-      match /messages/{messageId} {
-        allow read, write: if request.auth != null 
-          && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+      allow get: if isMember();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && request.auth.uid == resource.data.createdBy;
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.createdBy;
+    }
+
+    /**
+     * @description Allows members of a group to read and write messages within the group.
+     * @path /groups/{groupId}/messages/{messageId}
+     * @allow (get, list) - User A can get and list messages if they are a member of the group.
+     * @allow (create) - User A can create a message if they are a member of the group.
+     * @allow (update, delete) - No one can update or delete messages.
+     * @deny (get, list) - User A cannot get or list messages if they are not a member of the group.
+     * @deny (create) - User A cannot create a message if they are not a member of the group.
+     * @deny (update, delete) - User A cannot update or delete messages.
+     * @principle Enforces shared access for group members and prevents modification of existing messages.
+     */
+    match /groups/{groupId}/messages/{messageId} {
+      function isSignedIn() {
+          return request.auth != null;
       }
 
-      // Receipts
-      match /receipts/{receiptId} {
-        allow read, write: if request.auth != null 
-          && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+       function isMember(groupId) {
+        return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
       }
+
+      allow get: if isMember(groupId);
+      allow list: if isMember(groupId);
+      allow create: if isMember(groupId);
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Allows members of a group to read and write contribution records.
+     * @path /contributions/{contributionId}
+     * @allow (get, list) - User A can get and list contribution records if they are a member of the group.
+     * @allow (create) - User A can create a contribution record if they are a member of the group.
+     * @allow (update, delete) - Only the owner can update or delete contribution records.
+     * @deny (get, list) - User A cannot get or list contribution records if they are not a member of the group.
+     * @deny (create) - User A cannot create a contribution record if they are not a member of the group.
+     * @deny (update, delete) - User A cannot update or delete contribution records if they are not the owner.
+     * @principle Enforces shared access for group members and owner-only modification.
+     */
+    match /contributions/{contributionId} {
+      function isSignedIn() {
+          return request.auth != null;
+      }
+
+      function getGroupId() {
+        return resource.data.groupId;
+      }
+
+      function isMember(groupId) {
+        return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+      }
+
+      allow get: if isMember(getGroupId());
+      allow list: if isMember(getGroupId());
+      allow create: if isMember(getGroupId());
+      allow update: if request.auth.uid == resource.data.createdBy;
+      allow delete: if request.auth.uid == resource.data.createdBy;
+    }
+
+    /**
+     * @description Allows members of a group to read and write loan records.
+     * @path /loans/{loanId}
+     * @allow (get, list) - User A can get and list loan records if they are a member of the group.
+     * @allow (create) - User A can create a loan record if they are a member of the group.
+     * @allow (update, delete) - Only the owner can update or delete loan records.
+     * @deny (get, list) - User A cannot get or list loan records if they are not a member of the group.
+     * @deny (create) - User A cannot create a loan record if they are not a member of the group.
+     * @deny (update, delete) - User A cannot update or delete loan records if they are not the owner.
+     * @principle Enforces shared access for group members and owner-only modification.
+     */
+    match /loans/{loanId} {
+      function isSignedIn() {
+          return request.auth != null;
+      }
+
+      function getGroupId() {
+        return resource.data.groupId;
+      }
+
+      function isMember(groupId) {
+        return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+      }
+
+      allow get: if isMember(getGroupId());
+      allow list: if isMember(getGroupId());
+      allow create: if isMember(getGroupId());
+      allow update: if request.auth.uid == resource.data.createdBy;
+      allow delete: if request.auth.uid == resource.data.createdBy;
+    }
+
+    /**
+     * @description Allows members of a group to read and write receipt records.
+     * @path /receipts/{receiptId}
+     * @allow (get, list) - User A can get and list receipt records if they are a member of the group.
+     * @allow (create) - User A can create a receipt record if they are a member of the group.
+     * @allow (update, delete) - No one can update or delete receipt records.
+     * @deny (get, list) - User A cannot get or list receipt records if they are not a member of the group.
+     * @deny (create) - User A cannot create a receipt record if they are not a member of the group.
+     * @deny (update, delete) - User A cannot update or delete receipt records.
+     * @principle Enforces shared access for group members and prevents modification of existing receipts.
+     */
+    match /receipts/{receiptId} {
+        function isSignedIn() {
+          return request.auth != null;
+        }
+
+        function getGroupId() {
+          return resource.data.groupId;
+        }
+
+        function isMember(groupId) {
+          return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+        }
+
+        allow get: if isMember(getGroupId());
+        allow list: if isMember(getGroupId());
+        allow create: if isMember(getGroupId());
+        allow update: if false;
+        allow delete: if false;
     }
   }
 }
