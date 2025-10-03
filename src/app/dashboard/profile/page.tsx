@@ -14,17 +14,23 @@ export default function ProfilePage() {
   const { user, loading: loadingUser } = useUser();
   const firestore = useFirestore();
 
-  const userGroupsQuery = useMemo(() => {
-      if (!firestore || !user) return null;
-      return query(collection(firestore, 'groups'), where('members', 'array-contains', {id: user.uid, name: user.displayName, avatarUrl: user.photoURL || ''}));
-  }, [firestore, user]);
+  const allGroupsQuery = useMemo(() => {
+    if (!firestore) return null;
+    return collection(firestore, 'groups');
+  }, [firestore]);
+
+  const { data: allGroups, loading: loadingGroups } = useCollection<ChamaGroup>(allGroupsQuery);
+
+  const userGroups = useMemo(() => {
+    if (!allGroups || !user) return [];
+    return allGroups.filter(group => group.members.some(member => member.id === user.uid));
+  }, [allGroups, user]);
 
   const userContributionsQuery = useMemo(() => {
       if (!firestore || !user) return null;
       return query(collection(firestore, 'contributions'), where('memberId', '==', user.uid));
   }, [firestore, user]);
 
-  const { data: userGroups, loading: loadingGroups } = useCollection<ChamaGroup>(userGroupsQuery);
   const { data: userContributions, loading: loadingContributions } = useCollection<Contribution>(userContributionsQuery);
 
   const totalContributed = useMemo(() => {
@@ -56,7 +62,7 @@ export default function ProfilePage() {
               <CardHeader>
                 <CardTitle><Skeleton className="h-7 w-32" /></CardTitle>
                 <CardDescription><Skeleton className="h-4 w-48" /></CardDescription>
-              </CardHeader>
+              </Header>
               <CardContent className="space-y-4">
                   <Skeleton className="h-12 w-full" />
                   <Skeleton className="h-12 w-full" />
@@ -112,9 +118,10 @@ export default function ProfilePage() {
                     </div>
                 </div>
             ))}
-             {userGroups?.length === 0 && (
+             {userGroups?.length === 0 && !loadingGroups && (
                 <p className="text-sm text-muted-foreground text-center py-4">You are not a member of any groups yet.</p>
             )}
+            {loadingGroups && <p className="text-sm text-muted-foreground text-center py-4">Loading groups...</p>}
             </div>
         </CardContent>
       </Card>
