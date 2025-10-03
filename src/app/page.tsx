@@ -7,7 +7,7 @@ import { Logo } from "@/components/icons";
 import Link from "next/link";
 import Image from "next/image";
 import { placeholderImages } from "@/lib/placeholder-images";
-import { ShieldCheck, TrendingUp, Users, Wallet, ArrowRight, Sun, Moon, Zap, BarChart, MessageCircle, Star } from "lucide-react";
+import { ShieldCheck, TrendingUp, Users, Wallet, ArrowRight, Sun, Moon, Zap, BarChart, MessageCircle, Star, Twitter, Facebook, Linkedin, Mail, Phone, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -212,13 +212,56 @@ export default function LandingPage() {
 
       </main>
       
-       <footer className="border-t">
-          <div className="container flex flex-col items-center justify-between gap-4 py-10 md:h-24 md:flex-row md:py-0">
-            <div className="flex flex-col items-center gap-4 px-8 md:flex-row md:gap-2 md:px-0">
-              <Logo className="h-6 w-6 text-primary" />
-              <p className="text-center text-sm leading-loose md:text-left">
-                Built to empower savings groups. &copy; {new Date().getFullYear()} ChamaSync. All Rights Reserved.
-              </p>
+       <footer className="border-t bg-background">
+          <div className="container py-12">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+              <div className="space-y-4">
+                <Link href="/" className="flex items-center space-x-2">
+                  <Logo className="h-7 w-7 text-primary" />
+                  <span className="font-bold text-lg font-headline">ChamaSync</span>
+                </Link>
+                <p className="text-sm text-muted-foreground">The modern solution for managing your savings group with transparency and ease.</p>
+                 <div className="flex space-x-4">
+                  <Link href="#" className="text-muted-foreground hover:text-foreground"><Twitter className="h-5 w-5" /></Link>
+                  <Link href="#" className="text-muted-foreground hover:text-foreground"><Facebook className="h-5 w-5" /></Link>
+                  <Link href="#" className="text-muted-foreground hover:text-foreground"><Linkedin className="h-5 w-5" /></Link>
+                </div>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-4">Quick Links</h4>
+                <ul className="space-y-2 text-sm">
+                  <li><Link href="#features" className="text-muted-foreground hover:text-foreground">Features</Link></li>
+                  <li><Link href="/login" className="text-muted-foreground hover:text-foreground">Get Started</Link></li>
+                  <li><Link href="#testimonials" className="text-muted-foreground hover:text-foreground">Testimonials</Link></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-4">Legal</h4>
+                <ul className="space-y-2 text-sm">
+                  <li><Link href="#" className="text-muted-foreground hover:text-foreground">Privacy Policy</Link></li>
+                  <li><Link href="#" className="text-muted-foreground hover:text-foreground">Terms of Service</Link></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold mb-4">Contact Us</h4>
+                <ul className="space-y-3 text-sm">
+                  <li className="flex items-start gap-2">
+                    <MapPin className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
+                    <span className="text-muted-foreground">123 Westlands Rd, Nairobi, Kenya</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Mail className="h-5 w-5 text-muted-foreground shrink-0" />
+                    <a href="mailto:contact@chamasync.com" className="text-muted-foreground hover:text-foreground">contact@chamasync.com</a>
+                  </li>
+                   <li className="flex items-center gap-2">
+                    <Phone className="h-5 w-5 text-muted-foreground shrink-0" />
+                    <a href="tel:+254700000000" className="text-muted-foreground hover:text-foreground">+254 700 000 000</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div className="mt-12 border-t pt-8 text-center text-sm text-muted-foreground">
+              <p>&copy; {new Date().getFullYear()} ChamaSync. All Rights Reserved. Built to empower savings groups in Kenya.</p>
             </div>
           </div>
         </footer>
