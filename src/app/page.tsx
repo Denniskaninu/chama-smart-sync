@@ -9,6 +9,7 @@ import Image from "next/image";
 import { placeholderImages } from "@/lib/placeholder-images";
 import { ShieldCheck, TrendingUp, Users, Wallet, ArrowRight, Sun, Moon, Zap, BarChart, MessageCircle, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
 
 function ThemeToggle() {
   const { setTheme, theme } = useTheme();
