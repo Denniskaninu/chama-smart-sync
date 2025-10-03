@@ -94,7 +94,7 @@ export const subscriptions: Omit<SubscriptionPlan, 'status' | 'usage'>[] = [
         planId: 'pro',
         name: 'Pro Plan',
         description: 'For larger groups and chamas that need more power.',
-        price: 15,
+        price: 2000,
         features: ['Unlimited Groups', 'Advanced Reporting', 'Priority Support', 'Loan Management'],
     },
 ];
@@ -110,9 +110,9 @@ export const paymentMethods: PaymentMethod[] = [
 ];
 
 export const invoices: Invoice[] = [
-    { id: "INV001", date: "June 2024", amount: 5.00, status: "Paid" },
-    { id: "INV002", date: "May 2024", amount: 5.00, status: "Paid" },
-    { id: "INV003", date: "April 2024", amount: 5.00, status: "Paid" },
+    { id: "INV001", date: "June 2024", amount: 500, status: "Paid" },
+    { id: "INV002", date: "May 2024", amount: 500, status: "Paid" },
+    { id: "INV003", date: "April 2024", amount: 500, status: "Paid" },
 ];
 
     

@@ -66,6 +66,8 @@ export default function BillingPage() {
 
     if (!user) return null;
 
+    const formatCurrency = (amount: number) => `KSH ${amount.toLocaleString()}`;
+
   return (
     <div className="space-y-8 max-w-4xl mx-auto">
       <div>
@@ -85,7 +87,7 @@ export default function BillingPage() {
                 <div className="p-6 bg-muted rounded-lg space-y-4">
                     <div className="flex justify-between items-baseline">
                         <h3 className="text-2xl font-bold font-headline">{currentPlan.name}</h3>
-                        <p><span className="text-4xl font-bold">${currentPlan.price}</span>/month</p>
+                        <p><span className="text-4xl font-bold">{formatCurrency(currentPlan.price)}</span>/month</p>
                     </div>
                     <div className="space-y-2">
                         <p className="text-sm text-muted-foreground">Group usage: {currentPlan.usage.groupsUsed} of {currentPlan.usage.groupsLimit === 1000 ? 'Unlimited' : currentPlan.usage.groupsLimit} groups</p>
@@ -103,7 +105,7 @@ export default function BillingPage() {
                             <CardDescription>{plan.description}</CardDescription>
                         </CardHeader>
                         <CardContent className="flex-grow space-y-4">
-                             <p className="text-4xl font-bold">${plan.price}<span className="text-sm font-normal text-muted-foreground">/month</span></p>
+                             <p className="text-4xl font-bold">{formatCurrency(plan.price)}<span className="text-sm font-normal text-muted-foreground">/month</span></p>
                             <ul className="space-y-2 text-sm">
                                 {plan.features.map(feature => (
                                     <li key={feature} className="flex items-center gap-2">
@@ -168,7 +170,7 @@ export default function BillingPage() {
                                     <p className="text-sm text-muted-foreground">Invoice #{invoice.id}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="font-semibold">${invoice.amount.toFixed(2)}</p>
+                                    <p className="font-semibold">{formatCurrency(invoice.amount)}</p>
                                     <Badge variant={invoice.status === 'Paid' ? 'default' : 'secondary'} className="mt-1 bg-green-500/20 text-green-700 border-green-500/30">
                                         <CheckCircle className="mr-1 h-3 w-3"/>{invoice.status}
                                     </Badge>
