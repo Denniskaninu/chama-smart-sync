@@ -37,6 +37,13 @@ import { FirebaseErrorListener } from "@/components/FirebaseErrorListener";
 
 function AppSidebar() {
   const pathname = usePathname();
+  const { setOpenMobile, isMobile } = useSidebar();
+
+  const handleLinkClick = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   const menuItems = [
     { href: "/dashboard", label: "Dashboard", icon: Home },
@@ -64,7 +71,7 @@ function AppSidebar() {
       <SidebarContent>
         <SidebarMenu>
           {menuItems.map((item) => (
-            <SidebarMenuItem key={item.label}>
+            <SidebarMenuItem key={item.label} onClick={handleLinkClick}>
               <Link href={item.href} passHref>
                 <SidebarMenuButton
                   isActive={pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/dashboard')}
@@ -83,7 +90,7 @@ function AppSidebar() {
       </SidebarContent>
       <SidebarFooter>
           {bottomMenuItems.map((item) => (
-            <SidebarMenuItem key={item.label}>
+            <SidebarMenuItem key={item.label} onClick={handleLinkClick}>
               <Link href={item.href} passHref>
                 <SidebarMenuButton
                   isActive={pathname.startsWith(item.href)}
