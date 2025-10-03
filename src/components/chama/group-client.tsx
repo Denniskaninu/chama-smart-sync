@@ -50,6 +50,7 @@ import { collection, query, orderBy, where, addDoc, serverTimestamp, setDoc, doc
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { useToast } from "@/hooks/use-toast";
+import { UploadReceiptDialog } from "./upload-receipt-dialog";
 
 
 type GroupClientProps = {
@@ -513,7 +514,9 @@ export function GroupClient({ group, initialContributions, initialLoans, initial
                 ))}
               </div>
                <div className="flex justify-center mt-6">
-                <Button variant="outline"><Plus className="mr-2 h-4 w-4" />Upload Receipt</Button>
+                <UploadReceiptDialog groupId={group.id}>
+                    <Button variant="outline"><Plus className="mr-2 h-4 w-4" />Upload Receipt</Button>
+                </UploadReceiptDialog>
               </div>
             </CardContent>
           </Card>
@@ -522,5 +525,3 @@ export function GroupClient({ group, initialContributions, initialLoans, initial
     </div>
   );
 }
-
-    

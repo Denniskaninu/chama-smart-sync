@@ -15,9 +15,9 @@ export default function ProfilePage() {
   const firestore = useFirestore();
 
   const allGroupsQuery = useMemo(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return collection(firestore, 'groups');
-  }, [firestore]);
+  }, [firestore, user]);
 
   const { data: allGroups, loading: loadingGroups } = useCollection<ChamaGroup>(allGroupsQuery);
 
@@ -40,36 +40,38 @@ export default function ProfilePage() {
   
   const loading = loadingUser || loadingGroups || loadingContributions;
 
-  if (loading || !user) return (
-      <div className="space-y-8">
-          <Card>
-              <CardContent className="pt-6">
-                   <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6">
-                        <Skeleton className="h-32 w-32 rounded-full" />
-                        <div className="text-center sm:text-left flex-1 space-y-2">
-                            <Skeleton className="h-8 w-48" />
-                            <Skeleton className="h-5 w-64" />
-                            <Skeleton className="h-5 w-56" />
-                        </div>
-                        <div className="text-center sm:text-right space-y-1">
-                            <Skeleton className="h-5 w-24 ml-auto" />
-                            <Skeleton className="h-8 w-32 ml-auto" />
-                        </div>
-                   </div>
-              </CardContent>
-          </Card>
-          <Card>
-              <CardHeader>
-                <CardTitle><Skeleton className="h-7 w-32" /></CardTitle>
-                <CardDescription><Skeleton className="h-4 w-48" /></CardDescription>
-              </Header>
-              <CardContent className="space-y-4">
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
-              </CardContent>
-          </Card>
-      </div>
-  );
+  if (loading || !user) {
+    return (
+        <div className="space-y-8">
+            <Card>
+                <CardContent className="pt-6">
+                     <div className="flex flex-col items-center sm:flex-row sm:items-start gap-6">
+                          <Skeleton className="h-32 w-32 rounded-full" />
+                          <div className="text-center sm:text-left flex-1 space-y-2">
+                              <Skeleton className="h-8 w-48" />
+                              <Skeleton className="h-5 w-64" />
+                              <Skeleton className="h-5 w-56" />
+                          </div>
+                          <div className="text-center sm:text-right space-y-1">
+                              <Skeleton className="h-5 w-24 ml-auto" />
+                              <Skeleton className="h-8 w-32 ml-auto" />
+                          </div>
+                     </div>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                  <CardTitle><Skeleton className="h-7 w-32" /></CardTitle>
+                  <CardDescription><Skeleton className="h-4 w-48" /></CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                </CardContent>
+            </Card>
+        </div>
+    );
+  }
 
 
   return (

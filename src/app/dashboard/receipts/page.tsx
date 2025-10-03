@@ -1,43 +1,60 @@
 
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useFirestore, useCollection, useUser } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import Image from "next/image";
-import type { Receipt, UserProfile, ChamaGroup } from '@/lib/types';
+import type { Receipt, ChamaGroup } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { UploadReceiptDialog } from '@/components/chama/upload-receipt-dialog';
+
 
 export default function ReceiptsPage() {
     const firestore = useFirestore();
     const { user } = useUser();
+    const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+
+    const userGroupsQuery = useMemo(() => {
+        if (!firestore || !user) return null;
+        return query(collection(firestore, "groups"), where('members', 'array-contains', { id: user.uid, name: user.displayName, avatarUrl: user.photoURL }));
+    }, [firestore, user]);
+
+    const { data: userGroups, loading: loadingUserGroups } = useCollection<ChamaGroup>(userGroupsQuery);
 
     const receiptsQuery = useMemo(() => {
         if (!firestore) return null;
         return collection(firestore, 'receipts');
     }, [firestore]);
 
-    const groupsQuery = useMemo(() => {
+    const allGroupsQuery = useMemo(() => {
         if (!firestore) return null;
         return collection(firestore, 'groups');
     }, [firestore]);
 
     const { data: receipts, loading: loadingReceipts } = useCollection<Receipt>(receiptsQuery);
-    const { data: groups, loading: loadingGroups } = useCollection<ChamaGroup>(groupsQuery);
+    const { data: allGroups, loading: loadingAllGroups } = useCollection<ChamaGroup>(allGroupsQuery);
 
     const allMembers = useMemo(() => {
-        return groups?.flatMap(g => g.members) || [];
-    }, [groups]);
+        return allGroups?.flatMap(g => g.members) || [];
+    }, [allGroups]);
 
     const getUploaderName = (uploaderId: string) => {
         return allMembers.find(m => m.id === uploaderId)?.name || 'Unknown User';
     };
 
-    const loading = loadingReceipts || loadingGroups;
+    const loading = loadingReceipts || loadingAllGroups || loadingUserGroups;
 
     const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
@@ -48,9 +65,28 @@ export default function ReceiptsPage() {
             <p className="text-muted-foreground">All uploaded receipts for transparency.</p>
         </div>
         <Card>
-            <CardHeader>
-              <CardTitle>All Receipts</CardTitle>
-              <CardDescription>A record of all uploaded proofs of payment.</CardDescription>
+            <CardHeader className="flex flex-row justify-between items-center">
+              <div>
+                <CardTitle>All Receipts</CardTitle>
+                <CardDescription>A record of all uploaded proofs of payment.</CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Select onValueChange={setSelectedGroupId} value={selectedGroupId || undefined}>
+                    <SelectTrigger className="w-[180px]">
+                        <SelectValue placeholder="Select a group" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {userGroups?.map(group => (
+                            <SelectItem key={group.id} value={group.id}>{group.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                {selectedGroupId && (
+                    <UploadReceiptDialog groupId={selectedGroupId}>
+                        <Button><Plus className="mr-2 h-4 w-4" />Upload</Button>
+                    </UploadReceiptDialog>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -70,9 +106,11 @@ export default function ReceiptsPage() {
                    </div>
                 ))}
               </div>
-               <div className="flex justify-center mt-8">
-                <Button variant="outline"><Plus className="mr-2 h-4 w-4" />Upload New Receipt</Button>
-              </div>
+              { !loading && receipts?.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                    <p>No receipts have been uploaded yet.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
     </div>

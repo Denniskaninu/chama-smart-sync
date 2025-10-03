@@ -58,6 +58,8 @@ export interface Receipt {
     url: string;
     uploadedBy: string;
     timestamp: string; // ISO string
+    fileName?: string;
+    createdAt?: Timestamp;
 }
 
 export interface SubscriptionPlan {
@@ -87,5 +89,3 @@ export interface Invoice {
     amount: number;
     status: 'Paid' | 'Pending' | 'Failed';
 }
-
-    
