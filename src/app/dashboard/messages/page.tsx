@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Send, Paperclip, Loader2, AlertTriangle, MessagesSquare } from "lucide-react";
 import { useUser, useFirestore, useCollection } from "@/firebase";
-import { collection, query, where, orderBy, getDocs, collectionGroup } from "firebase/firestore";
+import { collection, query, where, orderBy, getDocs, collectionGroup, Timestamp } from "firebase/firestore";
 import type { Message, ChamaGroup, UserProfile } from "@/lib/types";
 
 export default function MessagesPage() {
@@ -33,31 +33,37 @@ export default function MessagesPage() {
         setLoadingMessages(true);
         
         const fetchAllMessages = async () => {
+            if (userGroups.length === 0) {
+                setAllMessages([]);
+                setLoadingMessages(false);
+                return;
+            }
+
             try {
-                if (userGroups.length === 0) {
-                    setAllMessages([]);
-                    setLoadingMessages(false);
-                    return;
+                const groupIds = userGroups.map(g => g.id);
+                // The 'in' query is limited to 30 items. If a user is in more than 30 groups, this will fail.
+                // A more scalable solution for that many groups would involve a different data model or fetching messages per group.
+                // For this app's scale, this is acceptable.
+                if (groupIds.length > 30) {
+                     throw new Error("Query limit exceeded: Cannot fetch messages for more than 30 groups at once.");
                 }
 
-                // Create a query for the 'messages' collection group, filtered by the user's group IDs
-                const groupIds = userGroups.map(g => g.id);
                 const messagesQuery = query(
-                    collectionGroup(firestore, 'messages'),
+                    collectionGroup(firestore, 'messages'), 
                     where('groupId', 'in', groupIds),
-                    orderBy('timestamp', 'desc') // Order by desc to get latest first, can be sorted asc later
+                    orderBy('timestamp', 'desc') // We need an index for this
                 );
 
-                const querySnapshot = await getDocs(messagesQuery);
-                const fetchedMessages = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
-
-                // Sort messages chronologically
+                const snapshot = await getDocs(messagesQuery);
+                const fetchedMessages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Message));
+                
+                 // Sort messages chronologically ascending on the client
                 fetchedMessages.sort((a, b) => {
                     const dateA = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : 0;
                     const dateB = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : 0;
                     return dateA - dateB;
                 });
-                
+
                 setAllMessages(fetchedMessages);
                 setError(null);
             } catch (err: any) {
@@ -190,3 +196,5 @@ export default function MessagesPage() {
     </div>
   );
 }
+
+    
