@@ -23,18 +23,28 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { GroupHeader } from "@/components/chama/group-header";
 import { ContributionsLineChart, LoansPieChart } from "@/components/chama/charts";
 import { MpesaReferenceCheck } from "@/components/chama/mpesa-check";
-import type { ChamaGroup, Contribution, Loan, Message, Receipt } from "@/lib/types";
+import type { ChamaGroup, Contribution, Loan, Message, Receipt, UserProfile } from "@/lib/types";
 import { loansChartData, contributionsChartData } from "@/lib/placeholder-data";
 import { Plus, ArrowRight, Paperclip, Send, ThumbsDown, ThumbsUp, Loader2, Vote } from "lucide-react";
 import Image from "next/image";
 import { Separator } from "../ui/separator";
 import { Input } from "../ui/input";
+import { Label } from "../ui/label";
 import { useUser, useFirestore, useCollection } from "@/firebase";
 import { collection, query, orderBy, where, addDoc, serverTimestamp, setDoc, doc, updateDoc, writeBatch } from "firebase/firestore";
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -48,6 +58,118 @@ type GroupClientProps = {
   initialLoans: Loan[];
   initialReceipts: Receipt[];
 };
+
+function RequestLoanDialog({ group, user }: { group: ChamaGroup, user: UserProfile }) {
+    const firestore = useFirestore();
+    const { toast } = useToast();
+    const [open, setOpen] = useState(false);
+    const [amount, setAmount] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const handleRequestLoan = async () => {
+        if (!firestore || !user || !amount || isNaN(parseInt(amount)) || parseInt(amount) <= 0) {
+            toast({
+                variant: "destructive",
+                title: "Invalid Amount",
+                description: "Please enter a valid loan amount.",
+            });
+            return;
+        }
+
+        if (parseInt(amount) > group.kittyBalance) {
+            toast({
+                variant: "destructive",
+                title: "Amount Exceeds Kitty Balance",
+                description: `You cannot request a loan greater than the group's total balance of KSH ${group.kittyBalance.toLocaleString()}.`,
+            });
+            return;
+        }
+
+        setLoading(true);
+
+        const loanData = {
+            groupId: group.id,
+            memberId: user.id,
+            memberName: user.name,
+            amount: parseInt(amount),
+            status: "pending" as const,
+            votes: [],
+            repayments: [],
+            createdAt: serverTimestamp(),
+        };
+
+        const loansCollection = collection(firestore, "loans");
+        addDoc(loansCollection, loanData)
+            .then(() => {
+                toast({
+                    title: "Loan Request Submitted!",
+                    description: `Your request for KSH ${parseInt(amount).toLocaleString()} has been submitted for voting.`,
+                });
+                setOpen(false);
+                setAmount("");
+            })
+            .catch((serverError) => {
+                const permissionError = new FirestorePermissionError({
+                    path: "loans",
+                    operation: "create",
+                    requestResourceData: loanData,
+                });
+                errorEmitter.emit("permission-error", permissionError);
+                toast({
+                    variant: "destructive",
+                    title: "Error Submitting Request",
+                    description: "Could not submit your loan request. Please check permissions.",
+                });
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button><Plus className="mr-2 h-4 w-4" />Request Loan</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>Request a Loan</DialogTitle>
+                    <DialogDescription>
+                        Your request will be subject to votes from other group members. The current kitty balance is KSH {group.kittyBalance.toLocaleString()}.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="amount" className="text-right">
+                            Amount (KSH)
+                        </Label>
+                        <Input
+                            id="amount"
+                            type="number"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            className="col-span-3"
+                            placeholder="e.g., 10000"
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button
+                        type="submit"
+                        onClick={handleRequestLoan}
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : null}
+                        Submit Request
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 
 export function GroupClient({ group, initialContributions, initialLoans, initialReceipts }: GroupClientProps) {
   const { user: authUser } = useUser();
@@ -186,6 +308,14 @@ export function GroupClient({ group, initialContributions, initialLoans, initial
   };
 
   const currentMerryGoRoundMember = group.members[group.merryGoRoundIndex];
+  
+  const currentUserProfile: UserProfile | undefined = authUser ? {
+    id: authUser.uid,
+    name: authUser.displayName || 'User',
+    email: authUser.email || '',
+    avatarUrl: authUser.photoURL || undefined,
+  } : undefined;
+
 
   const formatCurrency = (amount: number) => `KSH ${amount.toLocaleString()}`;
   const formatDate = (date: any) => {
@@ -269,7 +399,7 @@ export function GroupClient({ group, initialContributions, initialLoans, initial
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex justify-end">
-                <Button><Plus className="mr-2 h-4 w-4" />Request Loan</Button>
+                {currentUserProfile && <RequestLoanDialog group={group} user={currentUserProfile} />}
               </div>
               <div className="space-y-4">
                 {(loans || []).map(loan => (
@@ -317,8 +447,8 @@ export function GroupClient({ group, initialContributions, initialLoans, initial
                 const member = group.members.find(m => m.id === message.senderId);
                 // Fallback to authUser for current user's details if not in members list somehow
                 const senderPhoto = isCurrentUser ? authUser?.photoURL : member?.avatarUrl;
-                const senderName = isCurrentUser ? authUser?.displayName : member?.name;
-                const senderFallback = (senderName?.charAt(0) || 'U').toUpperCase();
+                const senderName = isCurrentUser ? "You" : member?.name;
+                const senderFallback = (member?.name?.charAt(0) || 'U').toUpperCase();
 
                 return (
                   <div key={message.id} className={`flex items-end gap-2 ${isCurrentUser ? 'justify-end' : ''}`}>
@@ -336,7 +466,7 @@ export function GroupClient({ group, initialContributions, initialLoans, initial
                      {isCurrentUser && (
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={senderPhoto || undefined} />
-                        <AvatarFallback>{senderFallback}</AvatarFallback>
+                        <AvatarFallback>{(authUser?.displayName?.charAt(0) || 'U').toUpperCase()}</AvatarFallback>
                       </Avatar>
                     )}
                   </div>
@@ -392,3 +522,5 @@ export function GroupClient({ group, initialContributions, initialLoans, initial
     </div>
   );
 }
+
+    

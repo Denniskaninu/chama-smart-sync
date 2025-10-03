@@ -1,3 +1,4 @@
+
 import { Timestamp } from "firebase/firestore";
 
 export type UserRole = "admin" | "treasurer" | "member";
@@ -40,6 +41,7 @@ export interface Loan {
   status: "pending" | "approved" | "rejected";
   votes: { userId: string; vote: boolean }[];
   repayments: { amount: number; date: string }[];
+  createdAt: Timestamp;
 }
 
 export interface Message {
@@ -85,3 +87,5 @@ export interface Invoice {
     amount: number;
     status: 'Paid' | 'Pending' | 'Failed';
 }
+
+    
