@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  # Add any build-time environment variables here if needed
+  # Example: NEXT_PUBLIC_SOME_VAR = "value"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
