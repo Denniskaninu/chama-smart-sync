@@ -1,0 +1,46 @@
+{
+  "placeholderImages": [
+    {
+      "id": "login-hero",
+      "description": "A group of people in a community meeting.",
+      "imageUrl": "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxidXNpbmVzcyUyMG1lZXRpbmd8ZW58MHx8fHwxNzU5NTA3NzM4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "business meeting"
+    },
+    {
+      "id": "avatar-1",
+      "description": "Avatar for user Juma Clive.",
+      "imageUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NTkzNjQ5MDN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man portrait"
+    },
+    {
+      "id": "avatar-2",
+      "description": "Avatar for user Aisha Ke.",
+      "imageUrl": "https://images.unsplash.com/photo-1494790108377-be9c29b29330?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwb3J0cmFpdCUyMG9mJTIwYSUyMGtlbnlhbiUyMHdvbWFufGVufDB8fHx8MTc1OTQyMDg2OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "kenyan woman"
+    },
+    {
+      "id": "avatar-3",
+      "description": "Avatar for user Ben Oloo.",
+      "imageUrl": "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxtYW4lMjBzbWlsaW5nfGVufDB8fHx8MTc1OTM2ODQxNnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man smiling"
+    },
+    {
+      "id": "avatar-4",
+      "description": "Avatar for user Caren W.",
+      "imageUrl": "https://images.unsplash.com/photo-1601288496920-b6154fe3626a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxzbWlsaW5nJTIwYWZyaWNhbiUyMHdvbWFufGVufDB8fHx8MTc1OTQyMDg2OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "kenyan woman smiling"
+    },
+    {
+      "id": "receipt-1",
+      "description": "A sample receipt for office supplies.",
+      "imageUrl": "https://images.unsplash.com/photo-1634733988138-bf2c3a2a13fa?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxyZWNlaXB0JTIwcGFwZXJ8ZW58MHx8fHwxNzU5MzEzNzgxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "receipt paper"
+    },
+    {
+      "id": "receipt-2",
+      "description": "A sample receipt for a team lunch.",
+      "imageUrl": "https://images.unsplash.com/photo-1758519289714-519a9d9b96e3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxyZXN0YXVyYW50JTIwYmlsbHxlbnwwfHx8fDE3NTk0MjA4Njh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "restaurant bill"
+    }
+  ]
+}
